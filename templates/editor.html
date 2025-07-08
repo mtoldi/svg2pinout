@@ -29,7 +29,7 @@
       background: #eee;
     }
     circle.pin-highlight {
-      stroke: rgb(0, 255, 76);
+      stroke: rgb(0, 240, 255);
       stroke-width: 0.5;
       fill: none;
     }
@@ -115,98 +115,104 @@
       });
     }
 
-    function placeLabel(pinId, direction) {
-      if (pinId !== selectedPinId) return;
-      const { cx, cy } = pinMap.get(pinId);
-      const inputVal = document.getElementById(`${pinId}-input`).value;
+function placeLabel(pinId, direction) {
+  if (pinId !== selectedPinId) return;
+  const { cx, cy } = pinMap.get(pinId);
+  const inputVal = document.getElementById(`${pinId}-input`).value;
 
-      const fontSize = 1.3;
-      const padding = 0.8;
-      const spacing = 6;
+  const fontSize = 1.3;
+  const padding = 0.8;
+  const spacing = 6;
 
+  // privremeni text element da izmjerimo točnu širinu
+  const tempText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  tempText.setAttribute("x", -9999);
+  tempText.setAttribute("y", -9999);
+  tempText.setAttribute("font-size", `${fontSize}px`);
+  tempText.textContent = inputVal;
+  overlay.appendChild(tempText);
+  const textWidth = tempText.getBBox().width;
+  const textHeight = tempText.getBBox().height;
+  overlay.removeChild(tempText);
 
-      // privremeni text element da izmjeriš stvarnu širinu
-      const tempText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      tempText.setAttribute("x", -9999); // stavi izvan pogleda
-      tempText.setAttribute("y", -9999);
-      tempText.setAttribute("font-size", `${fontSize}px`);
-      tempText.textContent = inputVal;
-      overlay.appendChild(tempText);
-          
-      const textWidth = tempText.getBBox().width;
-      overlay.removeChild(tempText); // očisti ga nakon mjerenja
+  const rectWidth = textWidth + padding * 3;
+  const rectHeight = fontSize + padding;
 
+  let rectX, rectY, labelX, labelY, lineX, lineY;
+  let rotate = null;
 
+  switch (direction) {
+    case 'E':
+      rectX = cx + spacing;
+      rectY = cy - rectHeight / 2;
+      labelX = rectX + rectWidth / 2;
+      labelY = cy;
+      lineX = rectX;
+      lineY = cy;
+      break;
+    case 'W':
+      rectX = cx - spacing - rectWidth;
+      rectY = cy - rectHeight / 2;
+      labelX = rectX + rectWidth / 2;
+      labelY = cy;
+      lineX = rectX + rectWidth;
+      lineY = cy;
+      break;
+    case 'N':
+      rectX = cx - rectWidth / 2;
+      rectY = cy - spacing - rectHeight;
+      labelX = cx;
+      labelY = rectY + rectHeight / 2;
+      lineX = cx;
+      lineY = rectY + rectHeight;
+      rotate = `rotate(-90 ${labelX} ${labelY})`;
+      break;
+    case 'S':
+      rectX = cx - rectWidth / 2;
+      rectY = cy + spacing;
+      labelX = cx;
+      labelY = rectY + rectHeight / 2;
+      lineX = cx;
+      lineY = rectY;
+      rotate = `rotate(-90 ${labelX} ${labelY})`;
+      break;
+  }
 
-      const rectWidth = textWidth + padding * 3;
-      const rectHeight = fontSize + padding;
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", cx);
+  line.setAttribute("y1", cy);
+  line.setAttribute("x2", lineX);
+  line.setAttribute("y2", lineY);
+  line.setAttribute("stroke", "black");
+  line.setAttribute("stroke-width", "0.2");
 
-      let rectX, rectY, labelX, labelY, lineX, lineY;
+  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rect.setAttribute("x", rectX);
+  rect.setAttribute("y", rectY);
+  rect.setAttribute("width", rectWidth);
+  rect.setAttribute("height", rectHeight);
+  rect.setAttribute("fill", "#800080");
+  rect.setAttribute("stroke", "black");
+  rect.setAttribute("stroke-width", "0.2");
+  rect.setAttribute("rx", "0.5");
 
-      switch (direction) {
-        case 'E':
-          rectX = cx + spacing;
-          rectY = cy - rectHeight / 2;
-          labelX = rectX + rectWidth / 2;
-          labelY = cy;
-          lineX = rectX;
-          lineY = cy;
-          break;
-        case 'W':
-          rectX = cx - spacing - rectWidth;
-          rectY = cy - rectHeight / 2;
-          labelX = rectX + rectWidth / 2;
-          labelY = cy;
-          lineX = rectX + rectWidth;
-          lineY = cy;
-          break;
-        case 'N':
-          rectX = cx - rectWidth / 2;
-          rectY = cy - spacing - rectHeight;
-          labelX = cx;
-          labelY = rectY + rectHeight / 2;
-          lineX = cx;
-          lineY = rectY + rectHeight;
-          break;
-        case 'S':
-          rectX = cx - rectWidth / 2;
-          rectY = cy + spacing;
-          labelX = cx;
-          labelY = rectY + rectHeight / 2;
-          lineX = cx;
-          lineY = rectY;
-          break;
-      }
+  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text.setAttribute("x", labelX);
+  text.setAttribute("y", labelY + fontSize * 0.1);
+  text.setAttribute("class", "hex-label");
+  text.setAttribute("font-size", `${fontSize}px`);
+  text.textContent = inputVal;
 
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("x1", cx);
-      line.setAttribute("y1", cy);
-      line.setAttribute("x2", lineX);
-      line.setAttribute("y2", lineY);
-      line.setAttribute("stroke", "black");
-      line.setAttribute("stroke-width", "0.2");
+  if (rotate) {
+    rect.setAttribute("transform", rotate);
+    text.setAttribute("transform", rotate);
+  }
 
-      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      rect.setAttribute("x", rectX);
-      rect.setAttribute("y", rectY);
-      rect.setAttribute("width", rectWidth);
-      rect.setAttribute("height", rectHeight);
-      rect.setAttribute("fill", "#800080");
-      rect.setAttribute("stroke", "black");
-      rect.setAttribute("stroke-width", "0.2");
-      rect.setAttribute("rx", "0.5");
+  overlay.appendChild(line);
+  overlay.appendChild(rect);
+  overlay.appendChild(text);
+}
 
-      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      text.setAttribute("x", labelX);
-      text.setAttribute("y", labelY + fontSize * 0.1);
-      text.setAttribute("class", "hex-label");
-      text.setAttribute("font-size", `${fontSize}px`);
-      text.textContent = inputVal;
-
-      overlay.appendChild(line);
-      overlay.appendChild(rect);
-      overlay.appendChild(text);
-    }
   </script>
 </body>
 </html>
