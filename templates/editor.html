@@ -14,7 +14,6 @@
       flex-grow: 1;
       border: 1px solid #ccc;
       margin: 1rem;
-      width: 100%;
       height: 90vh;
     }
     .hex-label {
@@ -74,7 +73,7 @@
       overlay.setAttribute("id", "label-overlay");
       viewport.appendChild(overlay);
 
-      const pinCircles = [...svg.querySelectorAll("circle")].filter((c, i) => {
+      const pinCircles = [...svg.querySelectorAll("circle")].filter(c => {
         const fill = (c.getAttribute("fill") || "").toLowerCase();
         const stroke = (c.getAttribute("stroke") || "").toLowerCase();
         const r = parseFloat(c.getAttribute("r"));
@@ -85,7 +84,6 @@
         const cx = parseFloat(pin.getAttribute("cx"));
         const cy = parseFloat(pin.getAttribute("cy"));
         const pinId = `P${idx + 1}`;
-
         pinMap.set(pinId, { cx, cy });
 
         const item = document.createElement("div");
@@ -121,67 +119,92 @@
       if (pinId !== selectedPinId) return;
       const { cx, cy } = pinMap.get(pinId);
       const inputVal = document.getElementById(`${pinId}-input`).value;
-      const baseSize = 1.3;
-      const spacing = 6;
-      const textLength = inputVal.length;
-      const textMargin = 0.4;
 
-      let dx = 0, dy = 0;
-      let labelX = cx, labelY = cy;
-      let sizeX = baseSize, sizeY = baseSize;
+      const fontSize = 1.3;
+      const padding = 0.8;
+      const spacing = 6;
+
+
+      // privremeni text element da izmjeriš stvarnu širinu
+      const tempText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      tempText.setAttribute("x", -9999); // stavi izvan pogleda
+      tempText.setAttribute("y", -9999);
+      tempText.setAttribute("font-size", `${fontSize}px`);
+      tempText.textContent = inputVal;
+      overlay.appendChild(tempText);
+          
+      const textWidth = tempText.getBBox().width;
+      overlay.removeChild(tempText); // očisti ga nakon mjerenja
+
+
+
+      const rectWidth = textWidth + padding * 3;
+      const rectHeight = fontSize + padding;
+
+      let rectX, rectY, labelX, labelY, lineX, lineY;
 
       switch (direction) {
         case 'E':
-          sizeX += textLength * 0.4;
-          dx = spacing;
-          labelX = cx + dx + sizeX / 2;
+          rectX = cx + spacing;
+          rectY = cy - rectHeight / 2;
+          labelX = rectX + rectWidth / 2;
+          labelY = cy;
+          lineX = rectX;
+          lineY = cy;
           break;
         case 'W':
-          sizeX += textLength * 0.4;
-          dx = -spacing;
-          labelX = cx + dx - sizeX / 2;
+          rectX = cx - spacing - rectWidth;
+          rectY = cy - rectHeight / 2;
+          labelX = rectX + rectWidth / 2;
+          labelY = cy;
+          lineX = rectX + rectWidth;
+          lineY = cy;
           break;
         case 'N':
-          sizeY += textLength * 0.3;
-          dy = -spacing;
-          labelY = cy + dy - sizeY / 2;
+          rectX = cx - rectWidth / 2;
+          rectY = cy - spacing - rectHeight;
+          labelX = cx;
+          labelY = rectY + rectHeight / 2;
+          lineX = cx;
+          lineY = rectY + rectHeight;
           break;
         case 'S':
-          sizeY += textLength * 0.3;
-          dy = spacing;
-          labelY = cy + dy + sizeY / 2;
+          rectX = cx - rectWidth / 2;
+          rectY = cy + spacing;
+          labelX = cx;
+          labelY = rectY + rectHeight / 2;
+          lineX = cx;
+          lineY = rectY;
           break;
       }
 
       const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
       line.setAttribute("x1", cx);
       line.setAttribute("y1", cy);
-      line.setAttribute("x2", labelX);
-      line.setAttribute("y2", labelY);
+      line.setAttribute("x2", lineX);
+      line.setAttribute("y2", lineY);
       line.setAttribute("stroke", "black");
       line.setAttribute("stroke-width", "0.2");
 
-      const hex = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-      const points = Array.from({ length: 5 }, (_, i) => {
-        const angle = Math.PI / 3 * i;
-        const x = labelX + sizeX * Math.cos(angle);
-        const y = labelY + sizeY * Math.sin(angle);
-        return `${x},${y}`;
-      }).join(" ");
-      hex.setAttribute("points", points);
-      hex.setAttribute("fill", "#800080");
-      hex.setAttribute("stroke", "black");
-      hex.setAttribute("stroke-width", "0.2");
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("x", rectX);
+      rect.setAttribute("y", rectY);
+      rect.setAttribute("width", rectWidth);
+      rect.setAttribute("height", rectHeight);
+      rect.setAttribute("fill", "#800080");
+      rect.setAttribute("stroke", "black");
+      rect.setAttribute("stroke-width", "0.2");
+      rect.setAttribute("rx", "0.5");
 
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
       text.setAttribute("x", labelX);
-      text.setAttribute("y", labelY + 0.25);
+      text.setAttribute("y", labelY + fontSize * 0.1);
       text.setAttribute("class", "hex-label");
-      text.setAttribute("font-size", "1.5px");
+      text.setAttribute("font-size", `${fontSize}px`);
       text.textContent = inputVal;
 
       overlay.appendChild(line);
-      overlay.appendChild(hex);
+      overlay.appendChild(rect);
       overlay.appendChild(text);
     }
   </script>
