@@ -19,7 +19,6 @@
     }
     .hex-label {
       cursor: pointer;
-      font-size: 4px;
       text-anchor: middle;
       dominant-baseline: middle;
       fill: white;
@@ -122,7 +121,7 @@
       if (pinId !== selectedPinId) return;
       const { cx, cy } = pinMap.get(pinId);
       const inputVal = document.getElementById(`${pinId}-input`).value;
-      const offset = 6; // duža linija
+      const offset = 6;
       let dx = 0, dy = 0;
 
       switch (direction) {
@@ -166,6 +165,7 @@
       text.setAttribute("x", labelX);
       text.setAttribute("y", labelY + 0.1);
       text.setAttribute("class", "hex-label");
+      text.setAttribute("font-size", `${Math.min(3, baseSize)}px`);
       text.textContent = inputVal;
 
       overlay.appendChild(line);
