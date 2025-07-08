@@ -121,18 +121,37 @@
       if (pinId !== selectedPinId) return;
       const { cx, cy } = pinMap.get(pinId);
       const inputVal = document.getElementById(`${pinId}-input`).value;
-      const offset = 6;
+      const baseSize = 1.3;
+      const spacing = 6;
+      const textLength = inputVal.length;
+      const textMargin = 0.4;
+
       let dx = 0, dy = 0;
+      let labelX = cx, labelY = cy;
+      let sizeX = baseSize, sizeY = baseSize;
 
       switch (direction) {
-        case 'N': dy = -offset; break;
-        case 'S': dy = offset; break;
-        case 'E': dx = offset; break;
-        case 'W': dx = -offset; break;
+        case 'E':
+          sizeX += textLength * 0.4;
+          dx = spacing;
+          labelX = cx + dx + sizeX / 2;
+          break;
+        case 'W':
+          sizeX += textLength * 0.4;
+          dx = -spacing;
+          labelX = cx + dx - sizeX / 2;
+          break;
+        case 'N':
+          sizeY += textLength * 0.3;
+          dy = -spacing;
+          labelY = cy + dy - sizeY / 2;
+          break;
+        case 'S':
+          sizeY += textLength * 0.3;
+          dy = spacing;
+          labelY = cy + dy + sizeY / 2;
+          break;
       }
-
-      const labelX = cx + dx;
-      const labelY = cy + dy;
 
       const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
       line.setAttribute("x1", cx);
@@ -143,14 +162,7 @@
       line.setAttribute("stroke-width", "0.2");
 
       const hex = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-      const baseSize = 1.3;
-      let sizeX = baseSize, sizeY = baseSize;
-      const len = inputVal.length;
-
-      if (direction === 'E' || direction === 'W') sizeX += len * 0.3;
-      else sizeY += len * 0.3;
-
-      const points = Array.from({ length: 6 }, (_, i) => {
+      const points = Array.from({ length: 5 }, (_, i) => {
         const angle = Math.PI / 3 * i;
         const x = labelX + sizeX * Math.cos(angle);
         const y = labelY + sizeY * Math.sin(angle);
@@ -163,9 +175,9 @@
 
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
       text.setAttribute("x", labelX);
-      text.setAttribute("y", labelY + 0.1);
+      text.setAttribute("y", labelY + 0.25);
       text.setAttribute("class", "hex-label");
-      text.setAttribute("font-size", `${Math.min(3, baseSize)}px`);
+      text.setAttribute("font-size", "1.5px");
       text.textContent = inputVal;
 
       overlay.appendChild(line);
