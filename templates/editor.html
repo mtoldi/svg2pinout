@@ -78,7 +78,7 @@
         const fill = (c.getAttribute("fill") || "").toLowerCase();
         const stroke = (c.getAttribute("stroke") || "").toLowerCase();
         const r = parseFloat(c.getAttribute("r"));
-        return (fill === "#cccccc" || fill === "gray") && stroke === "none" && Math.abs(r - 0.5) < 0.2;
+        return (fill === "#cccccc" || fill === "gray") && stroke === "none" && r==0.5;
       });
 
       pinCircles.forEach((pin, idx) => {
