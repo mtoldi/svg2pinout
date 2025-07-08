@@ -8,6 +8,7 @@
       width: 250px;
       border-right: 1px solid #ccc;
       padding: 1rem;
+      overflow-y: auto;
     }
     #svg-container {
       flex-grow: 1;
@@ -33,6 +34,12 @@
       stroke: rgb(0, 255, 76);
       stroke-width: 0.5;
       fill: none;
+    }
+    .label-input {
+      display: block;
+      margin-top: 0.2rem;
+      width: 90%;
+      font-size: 0.8rem;
     }
   </style>
 </head>
@@ -90,6 +97,7 @@
           <button onclick="placeLabel('${pinId}', 'E')">E</button>
           <button onclick="placeLabel('${pinId}', 'S')">S</button>
           <button onclick="placeLabel('${pinId}', 'W')">W</button>
+          <input class="label-input" id="${pinId}-input" placeholder="Label text" />
         `;
 
         item.addEventListener("click", () => {
@@ -113,6 +121,7 @@
     function placeLabel(pinId, direction) {
       if (pinId !== selectedPinId) return;
       const { cx, cy } = pinMap.get(pinId);
+      const inputVal = document.getElementById(`${pinId}-input`).value;
       const offset = 6; // duža linija
       let dx = 0, dy = 0;
 
@@ -131,41 +140,33 @@
       line.setAttribute("y1", cy);
       line.setAttribute("x2", labelX);
       line.setAttribute("y2", labelY);
-      line.setAttribute("stroke", "#800080");
+      line.setAttribute("stroke", "black");
       line.setAttribute("stroke-width", "0.2");
 
       const hex = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-      const size = 1.3;
+      const baseSize = 1.3;
+      let sizeX = baseSize, sizeY = baseSize;
+      const len = inputVal.length;
+
+      if (direction === 'E' || direction === 'W') sizeX += len * 0.3;
+      else sizeY += len * 0.3;
+
       const points = Array.from({ length: 6 }, (_, i) => {
         const angle = Math.PI / 3 * i;
-        const x = labelX + size * Math.cos(angle);
-        const y = labelY + size * Math.sin(angle);
+        const x = labelX + sizeX * Math.cos(angle);
+        const y = labelY + sizeY * Math.sin(angle);
         return `${x},${y}`;
       }).join(" ");
       hex.setAttribute("points", points);
       hex.setAttribute("fill", "#800080");
+      hex.setAttribute("stroke", "black");
+      hex.setAttribute("stroke-width", "0.2");
 
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
       text.setAttribute("x", labelX);
       text.setAttribute("y", labelY + 0.1);
       text.setAttribute("class", "hex-label");
-      text.textContent = "";
-
-      text.addEventListener("click", () => {
-        const newText = prompt("Unesi labelu:", text.textContent);
-        if (newText !== null) {
-          text.textContent = newText;
-          const len = newText.length;
-          const newSize = 1 + len * 0.3;
-          const newPoints = Array.from({ length: 6 }, (_, i) => {
-            const angle = Math.PI / 3 * i;
-            const x = labelX + newSize * Math.cos(angle);
-            const y = labelY + newSize * Math.sin(angle);
-            return `${x},${y}`;
-          }).join(" ");
-          hex.setAttribute("points", newPoints);
-        }
-      });
+      text.textContent = inputVal;
 
       overlay.appendChild(line);
       overlay.appendChild(hex);
