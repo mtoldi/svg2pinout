@@ -27,7 +27,7 @@
       margin-bottom: 0.5rem;
     }
     .pin-item.selected {
-      background: #eee;
+      background: #9bbec9;
     }
     circle.pin-highlight {
       stroke: rgb(0, 240, 255);
@@ -125,7 +125,7 @@ function placeLabel(pinId, direction) {
   const padding = 0.8;
   const spacing = 6;
 
-  // privremeni text element da izmjerimo točnu širinu
+  // Mjeri širinu teksta
   const tempText = document.createElementNS("http://www.w3.org/2000/svg", "text");
   tempText.setAttribute("x", -9999);
   tempText.setAttribute("y", -9999);
@@ -133,52 +133,92 @@ function placeLabel(pinId, direction) {
   tempText.textContent = inputVal;
   overlay.appendChild(tempText);
   const textWidth = tempText.getBBox().width;
-  const textHeight = tempText.getBBox().height;
   overlay.removeChild(tempText);
 
-  const rectWidth = textWidth + padding * 3;
-  const rectHeight = fontSize + padding;
+  const bodyWidth = textWidth + padding * 3;
+  const bodyHeight = fontSize + padding;
+  const inset = bodyHeight * 0.3;  // koliko "kosina" ulaze unutra
 
-  let rectX, rectY, labelX, labelY, lineX, lineY;
+  let polyPoints = "";
+  let labelX = cx, labelY = cy;
+  let lineX = cx, lineY = cy;
   let rotate = null;
 
+  // Proračun položaja šesterokuta
+  let baseX, baseY;
   switch (direction) {
     case 'E':
-      rectX = cx + spacing;
-      rectY = cy - rectHeight / 2;
-      labelX = rectX + rectWidth / 2;
+      baseX = cx + spacing;
+      baseY = cy - bodyHeight / 2;
+      labelX = baseX + bodyWidth / 2;
       labelY = cy;
-      lineX = rectX;
+      lineX = baseX;
       lineY = cy;
+      polyPoints = [
+        [baseX + inset, baseY],                         // top-left
+        [baseX + bodyWidth - inset, baseY],             // top-right
+        [baseX + bodyWidth, baseY + bodyHeight / 2],    // mid-right
+        [baseX + bodyWidth - inset, baseY + bodyHeight],// bottom-right
+        [baseX + inset, baseY + bodyHeight],            // bottom-left
+        [baseX, baseY + bodyHeight / 2]                 // mid-left
+      ];
       break;
+
     case 'W':
-      rectX = cx - spacing - rectWidth;
-      rectY = cy - rectHeight / 2;
-      labelX = rectX + rectWidth / 2;
+      baseX = cx - spacing - bodyWidth;
+      baseY = cy - bodyHeight / 2;
+      labelX = baseX + bodyWidth / 2;
       labelY = cy;
-      lineX = rectX + rectWidth;
+      lineX = baseX + bodyWidth;
       lineY = cy;
+      polyPoints = [
+        [baseX + inset, baseY],                         
+        [baseX + bodyWidth - inset, baseY],             
+        [baseX + bodyWidth, baseY + bodyHeight / 2],    
+        [baseX + bodyWidth - inset, baseY + bodyHeight],
+        [baseX + inset, baseY + bodyHeight],            
+        [baseX, baseY + bodyHeight / 2]                 
+      ];
       break;
+
     case 'N':
-      rectX = cx - rectWidth / 2;
-      rectY = cy - spacing - rectHeight;
+      baseX = cx - bodyWidth / 2;
+      baseY = cy - spacing - bodyHeight;
       labelX = cx;
-      labelY = rectY + rectHeight / 2;
+      labelY = baseY + bodyHeight / 2;
       lineX = cx;
-      lineY = rectY + rectHeight;
+      lineY = baseY + bodyHeight;
       rotate = `rotate(-90 ${labelX} ${labelY})`;
+      polyPoints = [
+        [baseX + inset, baseY],                         
+        [baseX + bodyWidth - inset, baseY],             
+        [baseX + bodyWidth, baseY + bodyHeight / 2],    
+        [baseX + bodyWidth - inset, baseY + bodyHeight],
+        [baseX + inset, baseY + bodyHeight],            
+        [baseX, baseY + bodyHeight / 2]                 
+      ];
       break;
+
     case 'S':
-      rectX = cx - rectWidth / 2;
-      rectY = cy + spacing;
+      baseX = cx - bodyWidth / 2;
+      baseY = cy + spacing;
       labelX = cx;
-      labelY = rectY + rectHeight / 2;
+      labelY = baseY + bodyHeight / 2;
       lineX = cx;
-      lineY = rectY;
+      lineY = baseY;
       rotate = `rotate(-90 ${labelX} ${labelY})`;
+      polyPoints = [
+        [baseX + inset, baseY],                         
+        [baseX + bodyWidth - inset, baseY],             
+        [baseX + bodyWidth, baseY + bodyHeight / 2],    
+        [baseX + bodyWidth - inset, baseY + bodyHeight],
+        [baseX + inset, baseY + bodyHeight],            
+        [baseX, baseY + bodyHeight / 2]                 
+      ];
       break;
   }
 
+  // Spojna linija
   const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.setAttribute("x1", cx);
   line.setAttribute("y1", cy);
@@ -187,16 +227,14 @@ function placeLabel(pinId, direction) {
   line.setAttribute("stroke", "black");
   line.setAttribute("stroke-width", "0.2");
 
-  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  rect.setAttribute("x", rectX);
-  rect.setAttribute("y", rectY);
-  rect.setAttribute("width", rectWidth);
-  rect.setAttribute("height", rectHeight);
-  rect.setAttribute("fill", "#800080");
-  rect.setAttribute("stroke", "black");
-  rect.setAttribute("stroke-width", "0.2");
-  rect.setAttribute("rx", "0.5");
+  // Poligon "šesterokut"
+  const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+  polygon.setAttribute("points", polyPoints.map(p => p.join(",")).join(" "));
+  polygon.setAttribute("fill", "#800080");
+  polygon.setAttribute("stroke", "black");
+  polygon.setAttribute("stroke-width", "0.2");
 
+  // Tekst
   const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
   text.setAttribute("x", labelX);
   text.setAttribute("y", labelY + fontSize * 0.1);
@@ -205,14 +243,15 @@ function placeLabel(pinId, direction) {
   text.textContent = inputVal;
 
   if (rotate) {
-    rect.setAttribute("transform", rotate);
+    polygon.setAttribute("transform", rotate);
     text.setAttribute("transform", rotate);
   }
 
   overlay.appendChild(line);
-  overlay.appendChild(rect);
+  overlay.appendChild(polygon);
   overlay.appendChild(text);
 }
+
 
   </script>
 </body>
