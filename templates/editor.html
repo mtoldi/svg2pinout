@@ -40,7 +40,15 @@
       width: 90%;
       font-size: 0.8rem;
     }
+
+  #svg-container svg {
+    width: 100%;
+    height: 100%;
+  } 
+
   </style>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+
 </head>
 <body>
 
@@ -74,11 +82,30 @@
       overlay.setAttribute("id", "label-overlay");
       viewport.appendChild(overlay);
 
+      svg.removeAttribute("width");
+      svg.removeAttribute("height");
+      svg.setAttribute("width", "100%");
+      svg.setAttribute("height", "100%");
+          
+      const panZoom = svgPanZoom(svg, {
+        zoomEnabled: true,
+        controlIconsEnabled: true,
+        fit: true,
+        center: true,
+        minZoom: 0.5,
+        maxZoom: 20,
+        zoomScaleSensitivity: 0.2,
+        panEnabled: true,
+        dblClickZoomEnabled: true,
+        mouseWheelZoomEnabled: true
+      });
+
+
       const pinCircles = [...svg.querySelectorAll("circle")].filter(c => {
         const fill = (c.getAttribute("fill") || "").toLowerCase();
         const stroke = (c.getAttribute("stroke") || "").toLowerCase();
         const r = parseFloat(c.getAttribute("r"));
-        return (fill === "#cccccc" || fill === "gray") && stroke === "none" && r==0.5;
+        return (fill === "#cccccc") && stroke === "none" && r==0.5;
       });
 
       pinCircles.forEach((pin, idx) => {
@@ -159,7 +186,7 @@
       const inputVal = document.getElementById(`${pinId}-input-${labelIndex}`).value;
       const fontSize = 1.3;
       const padding = 0.8;
-      const spacing = (labelIndex === 0) ? 5 : 2;
+      const spacing = (labelIndex === 0) ? 5 : 1;
 
       const tempText = document.createElementNS("http://www.w3.org/2000/svg", "text");
       tempText.setAttribute("x", -9999);
