@@ -3,7 +3,7 @@
 <head>
   <title>SKU Pin Label Editor</title>
   <style>
-    body { font-family: sans-serif; display: flex; }
+    body { font-family: source-pro; display: flex; }
     #editor-panel {
       height: 100vh;
       width: 250px;
@@ -277,7 +277,7 @@ function initEditor() {
       polygon.setAttribute("points", polyPoints.map(p => p.join(",")).join(" "));
       polygon.setAttribute("fill", "#800080");
       polygon.setAttribute("stroke", "black");
-      polygon.setAttribute("stroke-width", "0.2");
+      polygon.setAttribute("stroke-width", "0.1");
 
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
       text.setAttribute("x", labelX);
@@ -319,7 +319,7 @@ function downloadSVG() {
       text-anchor: middle;
       dominant-baseline: middle;
       fill: white;
-      font-family: sans-serif;
+      font-family: source-pro;
     }
     .pin-highlight {
       stroke: none;
