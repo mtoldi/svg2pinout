@@ -57,6 +57,14 @@
     <div id="pin-list"></div>
   </div>
 
+  
+  <div id="svg-controls" style="position: absolute; top: 10px; left: 270px; z-index: 10;">
+    <button onclick="zoomIn()">+</button>
+    <button onclick="zoomOut()">−</button>
+    <button onclick="resetZoom()">Reset</button>
+    <button onclick="downloadSVG()">💾 Preuzmi</button>
+  </div>
+
   <div id="svg-container"></div>
 
   <script>
@@ -66,6 +74,7 @@
     let pinMap = new Map();
     let selectedPinId = null;
     let highlightCircle = null;
+  
 
     fetch("/svg/sku.svg")
       .then(res => res.text())
@@ -74,7 +83,9 @@
         initEditor();
       });
 
-    function initEditor() {
+    let panZoom = null;
+
+function initEditor() {
       const svg = container.querySelector("svg");
       const viewport = svg.querySelector(".svg-pan-zoom_viewport") || svg;
 
@@ -89,7 +100,7 @@
           
       const panZoom = svgPanZoom(svg, {
         zoomEnabled: true,
-        controlIconsEnabled: true,
+        controlIconsEnabled: false,
         fit: true,
         center: true,
         minZoom: 0.5,
@@ -296,6 +307,53 @@
       overlay.lastPlacedLabels[pinId][labelIndex] = { endX: endPoint[0], endY: endPoint[1] };
 
     }
+
+function downloadSVG() {
+  const svg = container.querySelector("svg");
+  const clone = svg.cloneNode(true);
+
+  // Ugradi osnovne stilove unutar SVG-a
+  const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+  style.textContent = `
+    .hex-label {
+      text-anchor: middle;
+      dominant-baseline: middle;
+      fill: white;
+      font-family: sans-serif;
+    }
+    .pin-highlight {
+      stroke: rgb(0, 240, 255);
+      stroke-width: 0.5;
+      fill: none;
+    }
+  `;
+  clone.insertBefore(style, clone.firstChild);
+
+
+  // Očisti atribute koji izazivaju probleme
+  const attributesToRemove = ['xmlns:ev', 'xmlns:xlink'];
+  attributesToRemove.forEach(attr => {
+    if (clone.hasAttribute(attr)) {
+      clone.removeAttribute(attr);
+    }
+  });
+
+  // Ako treba, dodaj samo osnovne namespace-ove
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+  const svgText = new XMLSerializer().serializeToString(clone);
+
+  const blob = new Blob([svgText], {type: "image/svg+xml"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "edited_sku.svg";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+  
   </script>
 </body>
 </html>
