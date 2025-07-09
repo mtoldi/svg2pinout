@@ -322,13 +322,12 @@ function downloadSVG() {
       font-family: sans-serif;
     }
     .pin-highlight {
-      stroke: rgb(0, 240, 255);
+      stroke: none;
       stroke-width: 0.5;
       fill: none;
     }
   `;
   clone.insertBefore(style, clone.firstChild);
-
 
   // Očisti atribute koji izazivaju probleme
   const attributesToRemove = ['xmlns:ev', 'xmlns:xlink'];
@@ -338,7 +337,7 @@ function downloadSVG() {
     }
   });
 
-  // Ako treba, dodaj samo osnovne namespace-ove
+  // Dodaj osnovni namespace ako treba
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
 
   const svgText = new XMLSerializer().serializeToString(clone);
@@ -351,6 +350,7 @@ function downloadSVG() {
   a.click();
   URL.revokeObjectURL(url);
 }
+
 
 
   
