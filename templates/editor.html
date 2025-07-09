@@ -2,51 +2,114 @@
 <html>
 <head>
   <title>SKU Pin Label Editor</title>
-  <style>
-    body { font-family: source-pro; display: flex; }
-    #editor-panel {
-      height: 100vh;
-      width: 250px;
-      border-right: 1px solid #ccc;
-      padding: 1rem;
-      overflow-y: auto;
-    }
-    #svg-container {
-      flex-grow: 1;
-      border: 1px solid #ccc;
-      margin: 1rem;
-      height: 90vh;
-    }
-    .hex-label {
-      cursor: pointer;
-      text-anchor: middle;
-      dominant-baseline: middle;
-      fill: white;
-    }
-    .pin-item {
-      margin-bottom: 0.5rem;
-    }
-    .pin-item.selected {
-      background: #9bbec9;
-    }
-    circle.pin-highlight {
-      stroke: rgb(0, 240, 255);
-      stroke-width: 0.5;
-      fill: none;
-    }
-    .label-input {
-      display: block;
-      margin-top: 0.2rem;
-      width: 90%;
-      font-size: 0.8rem;
-    }
+<style>
+  body {
+    font-family: 'source-pro', sans-serif;
+    display: flex;
+    margin: 0;
+    color: #222;
+  }
+
+  #editor-panel {
+    height: 100vh;
+    width: 320px;
+    border-right: 1px solid #ddd;
+    padding: 1rem;
+    overflow-y: auto;
+    background: #f9f9f9;
+  }
+
+  #svg-container {
+    flex-grow: 1;
+    border: 1px solid #ccc;
+    margin: 1rem;
+    height: 90vh;
+    background: white;
+  }
+
+  .pin-item {
+    padding: 0.6rem;
+    margin-bottom: 0.8rem;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: background 0.2s ease;
+  }
+
+  .pin-item.selected {
+    background: #e6f1f4;
+    border-left: 4px solid #71a9b3;
+  }
+
+  .pin-label {
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    display: inline-block;
+    margin-bottom: 0.3rem;
+  }
+
+  .label-input {
+    display: block;
+    margin-top: 0.3rem;
+    margin-bottom: 0.3rem;
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+  }
+
+  .hex-label {
+    cursor: pointer;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    fill: white;
+  }
+
+  button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    color: #333;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 5px;
+    margin: 0.2rem 0.1rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  button:hover {
+    background-color: #e0e0e0;
+  }
 
   #svg-container svg {
     width: 100%;
     height: 100%;
-  } 
+  }
 
-  </style>
+  circle.pin-highlight {
+    stroke: rgb(0, 240, 255);
+    stroke-width: 0.5;
+    fill: none;
+  }
+
+  #svg-controls {
+    position: absolute;
+    top: 10px;
+    left: 340px;
+    z-index: 10;
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  #svg-controls button {
+    font-size: 1rem;
+    padding: 0.4rem 0.6rem;
+  }
+</style>
+
 <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 
 </head>
@@ -85,91 +148,201 @@
 
     let panZoom = null;
 
+
+function reverseRotation(x, y, angleDeg, cx, cy) {
+  const angleRad = -angleDeg * Math.PI / 180;  // Invertiramo kut
+  const dx = x - cx;
+  const dy = y - cy;
+  const rx = dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
+  const ry = dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
+  return { x: cx + rx, y: cy + ry };
+}
+
+function highlightPin(pinId) {
+  const pin = pinMap.get(pinId);
+  if (!pin) return;
+
+  // Očisti selekciju u editor panelu
+  document.querySelectorAll('.pin-item').forEach(el => el.classList.remove('selected'));
+  
+  // Selektuj odgovarajući element
+  const item = document.querySelector(`.pin-item[data-pin-id="${pinId}"]`);
+  if (item) {
+    item.classList.add('selected');
+    item.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  selectedPinId = pinId;
+
+  // Prikaz highlight kružića
+  if (highlightCircle) highlightCircle.remove();
+  highlightCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  highlightCircle.setAttribute("cx", pin.cx);
+  highlightCircle.setAttribute("cy", pin.cy);
+  highlightCircle.setAttribute("r", 1);
+  highlightCircle.classList.add("pin-highlight");
+  overlay.appendChild(highlightCircle);
+}
+
+
+
 function initEditor() {
-      const svg = container.querySelector("svg");
-      const viewport = svg.querySelector(".svg-pan-zoom_viewport") || svg;
+  const svg = container.querySelector("svg");
 
-      overlay = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      overlay.setAttribute("id", "label-overlay");
-      viewport.appendChild(overlay);
+  let mainTransform = { angle: 0, cx: 0, cy: 0 };
 
-      svg.removeAttribute("width");
-      svg.removeAttribute("height");
-      svg.setAttribute("width", "100%");
-      svg.setAttribute("height", "100%");
-          
-      const panZoom = svgPanZoom(svg, {
-        zoomEnabled: true,
-        controlIconsEnabled: false,
-        fit: true,
-        center: true,
-        minZoom: 0.5,
-        maxZoom: 20,
-        zoomScaleSensitivity: 0.2,
-        panEnabled: true,
-        dblClickZoomEnabled: true,
-        mouseWheelZoomEnabled: true
-      });
+  const mainGroup = svg.querySelector('g[id="main-content"]');
+  if (mainGroup) {
+    const transformAttr = mainGroup.getAttribute("transform");
+    const match = /rotate\(([-\d.]+),\s*([-\d.]+),\s*([-\d.]+)\)/.exec(transformAttr);
+    if (match) {
+      mainTransform.angle = parseFloat(match[1]);
+      mainTransform.cx = parseFloat(match[2]);
+      mainTransform.cy = parseFloat(match[3]);
+    }
+  }
 
+  const viewport = svg.querySelector(".svg-pan-zoom_viewport") || svg;
 
-      const pinCircles = [...svg.querySelectorAll("circle")].filter(c => {
-        const fill = (c.getAttribute("fill") || "").toLowerCase();
-        const stroke = (c.getAttribute("stroke") || "").toLowerCase();
-        const r = parseFloat(c.getAttribute("r"));
-        return (fill === "#cccccc") && stroke === "none" && r==0.5;
-      });
+  overlay = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  overlay.setAttribute("id", "label-overlay");
+  viewport.appendChild(overlay);
 
-      pinCircles.forEach((pin, idx) => {
-        const cx = parseFloat(pin.getAttribute("cx"));
-        const cy = parseFloat(pin.getAttribute("cy"));
-        const pinId = `P${idx + 1}`;
-        pinMap.set(pinId, { cx, cy, labels: [] });
+  svg.removeAttribute("width");
+  svg.removeAttribute("height");
+  svg.setAttribute("width", "100%");
+  svg.setAttribute("height", "100%");
 
+  panZoom = svgPanZoom(svg, {
+    zoomEnabled: true,
+    controlIconsEnabled: false,
+    fit: true,
+    center: true,
+    minZoom: 0.5,
+    maxZoom: 20,
+    zoomScaleSensitivity: 0.2,
+    panEnabled: true,
+    dblClickZoomEnabled: true,
+    mouseWheelZoomEnabled: true
+  });
+
+  const pinCircles = [...svg.querySelectorAll("circle")].filter(c => {
+    const fill = (c.getAttribute("fill") || "").toLowerCase();
+    const stroke = (c.getAttribute("stroke") || "").toLowerCase();
+    const r = parseFloat(c.getAttribute("r"));
+    return (fill === "#cccccc") && stroke === "none" && r == 0.5;
+  });
+
+  pinCircles.forEach((pin, idx) => {
+    const cxRaw = parseFloat(pin.getAttribute("cx"));
+    const cyRaw = parseFloat(pin.getAttribute("cy"));
+    const { x: cx, y: cy } = reverseRotation(cxRaw, cyRaw, mainTransform.angle, mainTransform.cx, mainTransform.cy);
+    const pinId = `P${idx + 1}`;
+
+    pinMap.set(pinId, { cx, cy, labels: [], name: pinId }); // dodano 'name'
+
+    pin.setAttribute("data-pin-id", pinId);
+    pin.addEventListener("click", (e) => {
+      e.stopPropagation();
+
+      if (!document.querySelector(`.pin-item[data-pin-id="${pinId}"]`)) {
         const item = document.createElement("div");
         item.className = "pin-item";
+        item.setAttribute("data-pin-id", pinId);
         item.innerHTML = `
-          <strong>${pinId}</strong><br>
+          <span class="pin-label" data-editable-id="${pinId}">${pinId}</span><br>
           <button onclick="placeAllLabels('${pinId}', 'N')">N</button>
           <button onclick="placeAllLabels('${pinId}', 'E')">E</button>
           <button onclick="placeAllLabels('${pinId}', 'S')">S</button>
           <button onclick="placeAllLabels('${pinId}', 'W')">W</button>
           <button onclick="addLabel('${pinId}')">+</button>
           <div id="${pinId}-labels">
+            <div class="label-row" style="display: flex; align-items: center; gap: 0.4rem; margin-top: 0.3rem;">
             <input class="label-input" id="${pinId}-input-0" placeholder="Label text" />
+            <input type="color" id="${pinId}-color-0" value="#baf0b1" />
+          </div>
+
           </div>
         `;
 
-        item.addEventListener("click", () => {
-          document.querySelectorAll('.pin-item').forEach(el => el.classList.remove('selected'));
-          item.classList.add("selected");
-          selectedPinId = pinId;
+        // Klik na cijeli editor item
+        item.addEventListener("click", () => highlightPin(pinId));
 
-          if (highlightCircle) highlightCircle.remove();
-          highlightCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          highlightCircle.setAttribute("cx", cx);
-          highlightCircle.setAttribute("cy", cy);
-          highlightCircle.setAttribute("r", 1);
-          highlightCircle.classList.add("pin-highlight");
-          overlay.appendChild(highlightCircle);
+        // Inline rename
+        const labelEl = item.querySelector(`.pin-label`);
+        labelEl.addEventListener("dblclick", () => {
+          const currentName = labelEl.textContent;
+          const input = document.createElement("input");
+          input.type = "text";
+          input.value = currentName;
+          input.className = "label-input";
+          input.style.width = "80%";
+
+          labelEl.replaceWith(input);
+          input.focus();
+
+          function save() {
+            const newName = input.value.trim() || currentName;
+            const span = document.createElement("span");
+            span.className = "pin-label";
+            span.textContent = newName;
+            span.setAttribute("data-editable-id", pinId);
+            input.replaceWith(span);
+
+            // Omogućujemo ponovno uređivanje
+            span.addEventListener("dblclick", () => {
+              span.replaceWith(input);
+              input.focus();
+            });
+
+            // Ažuriramo naziv u mapi
+            pinMap.get(pinId).name = newName;
+          }
+
+          input.addEventListener("blur", save);
+          input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") input.blur();
+            if (e.key === "Escape") input.value = currentName, input.blur();
+          });
         });
 
         pinList.appendChild(item);
-      });
-    }
+      }
 
-    function addLabel(pinId) {
-      const pin = pinMap.get(pinId);
-      const idx = pin.labels.length + 1;
+      highlightPin(pinId);
+    });
+  });
+}
 
-      const container = document.getElementById(`${pinId}-labels`);
-      const input = document.createElement("input");
-      input.className = "label-input";
-      input.id = `${pinId}-input-${idx}`;
-      input.placeholder = "Label text";
-      container.appendChild(input);
+function addLabel(pinId) {
+  const labelIndex = document.querySelectorAll(`#${pinId}-labels .label-row`).length;
 
-      pin.labels.push({ index: idx });
-    }
+  const container = document.getElementById(`${pinId}-labels`);
+  const row = document.createElement("div");
+  row.className = "label-row";
+  row.style.display = "flex";
+  row.style.alignItems = "center";
+  row.style.gap = "0.4rem";
+  row.style.marginTop = "0.3rem";
+
+  const textInput = document.createElement("input");
+  textInput.className = "label-input";
+  textInput.id = `${pinId}-input-${labelIndex}`;
+  textInput.placeholder = "Label text";
+
+  const colorInput = document.createElement("input");
+  colorInput.type = "color";
+  colorInput.id = `${pinId}-color-${labelIndex}`;
+  colorInput.value = "#baf0b1";
+
+  row.appendChild(textInput);
+  row.appendChild(colorInput);
+  container.appendChild(row);
+}
+
+
+
+
 
     function placeAllLabels(pinId, direction) {
       const pin = pinMap.get(pinId);
@@ -195,6 +368,7 @@ function initEditor() {
 
 
       const inputVal = document.getElementById(`${pinId}-input-${labelIndex}`).value;
+      const colorVal = document.getElementById(`${pinId}-color-${labelIndex}`)?.value || "#BAF0B1";
       const fontSize = 1.3;
       const padding = 0.8;
       const spacing = (labelIndex === 0) ? 5 : 1;
@@ -243,7 +417,7 @@ function initEditor() {
           labelY = baseY + bodyHeight / 2;
           lineX = anchorX;
           lineY = baseY + bodyHeight;
-          rotate = `rotate(-90 ${labelX} ${labelY})`;
+          rotate = `rotate(+90 ${labelX} ${labelY})`;
           break;
         case 'S':
           baseX = anchorX - bodyWidth / 2;
@@ -252,7 +426,7 @@ function initEditor() {
           labelY = baseY + bodyHeight / 2;
           lineX = anchorX;
           lineY = baseY;
-          rotate = `rotate(-90 ${labelX} ${labelY})`;
+          rotate = `rotate(+90 ${labelX} ${labelY})`;
           break;
       }
 
@@ -275,7 +449,7 @@ function initEditor() {
 
       const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
       polygon.setAttribute("points", polyPoints.map(p => p.join(",")).join(" "));
-      polygon.setAttribute("fill", "#800080");
+      polygon.setAttribute("fill", colorVal);
       polygon.setAttribute("stroke", "black");
       polygon.setAttribute("stroke-width", "0.1");
 
