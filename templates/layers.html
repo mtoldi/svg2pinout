@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Layer Editor</title>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+  <style>
+    body { font-family: sans-serif; display: flex; gap: 2rem; }
+    #layer-controls { width: 300px; }
+    .layer-item { margin-bottom: 10px; padding: 5px; border: 1px solid #ccc; background: #f9f9f9; cursor: move; }
+    #svg-viewer { flex-grow: 1; border: 1px solid #000; height: 90vh; overflow: hidden; position: relative; }
+    #controls { margin-top: 1rem; }
+  </style>
+</head>
+<body>
+
+<div style="background:#333; color:white; padding:10px;">
+  <a href="/kicad" style="color:white; margin-right:20px;">KiCad Layers</a>
+  <a href="/editor-upload" style="color:white;">SVG Pin Editor</a>
+
+</div>
+
+<div id="layer-controls">
+  <h2>Slojevi</h2>
+  <div id="layer-list">
+    {% for svg in svg_files %}
+    {% set color = "#000000" %}
+    {% if "F_Silkscreen" in svg or "Edge_Cuts" in svg %}
+      {% set color = "#5B2379" %}
+    {% elif "User_Drawings" in svg or "F_Mask" in svg %}
+      {% set color = "#cccccc" %}
+    {% endif %}
+    <div class="layer-item" data-file="{{ svg }}">
+      <label>{{ svg }}</label><br>
+      Boja: <input type="color" value="{{ color }}" class="color-picker"><br>
+    </div>
+    {% endfor %}
+  </div>
+  <div id="controls">
+    <button onclick="updateStack()">Prikaži složeni prikaz</button>
+    <button onclick="rotateView()">Rotiraj +90°</button>
+    <label for="sku-input">SKU:</label>
+    <input type="text" id="sku-input" placeholder="npr. 333037" style="width: 100%; margin-bottom: 10px;"><br>
+    <button onclick="downloadSVG()">Preuzmi SVG</button>
+  </div>
+</div>
+
+<div id="svg-viewer">
+  <svg id="combined-svg" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+    <g id="main-content"></g>
+  </svg>
+</div>
+
+<script>
+  let currentRotation = 0;
+  let viewBoxCenter = { x: 0, y: 0 };
+  let panZoomInstance = null;
+
+  Sortable.create(document.getElementById('layer-list'), {
+    animation: 150
+  });
+
+  function applyColorRecursive(element, color, layerName = "") {
+    if (element.nodeType !== 1) return;
+
+    const isEdgeCuts = layerName.includes("Edge_Cuts");
+    const isSilkscreen = layerName.includes("F_Silkscreen");
+
+    const strokeWidth = isEdgeCuts ? "0.2" :
+                        isSilkscreen ? "0.05" :
+                        null;
+
+    const style = element.getAttribute("style");
+    if (style) {
+      let newStyle = style
+        .replace(/stroke:\s*[^;]+/, isEdgeCuts || isSilkscreen ? `stroke:${color}` : `stroke:none`)
+        .replace(/fill:\s*[^;]+/, isEdgeCuts ? `fill:none` : `fill:${color}`);
+
+      if (strokeWidth !== null) {
+        if (newStyle.includes("stroke-width")) {
+          newStyle = newStyle.replace(/stroke-width:\s*[^;]+/, `stroke-width:${strokeWidth}`);
+        } else {
+          newStyle += `;stroke-width:${strokeWidth}`;
+        }
+      }
+
+      element.setAttribute("style", newStyle);
+    } else {
+      element.setAttribute("stroke", isEdgeCuts || isSilkscreen ? color : "none");
+      element.setAttribute("fill", isEdgeCuts ? "none" : color);
+      if (strokeWidth !== null) {
+        element.setAttribute("stroke-width", strokeWidth);
+      }
+    }
+
+    for (let child of element.children) {
+      applyColorRecursive(child, color, layerName);
+    }
+  }
+
+  async function updateStack() {
+    const viewer = document.getElementById('combined-svg');
+    const group = document.getElementById('main-content');
+    group.innerHTML = '';
+    currentRotation = 0;
+    group.setAttribute("transform", "rotate(0)");
+
+    const items = document.querySelectorAll('.layer-item');
+    for (const item of items) {
+      const file = item.dataset.file;
+      const color = item.querySelector('.color-picker').value;
+
+      const res = await fetch(`/kicad/svg/${file}`);
+      const text = await res.text();
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, "image/svg+xml");
+      const innerSvg = doc.querySelector('svg');
+
+      if (!innerSvg) continue;
+
+      if (viewer.getAttribute("viewBox") === null) {
+        const viewBox = innerSvg.getAttribute("viewBox");
+        if (viewBox) {
+          viewer.setAttribute("viewBox", viewBox);
+          const [x, y, width, height] = viewBox.split(" ").map(parseFloat);
+          viewBoxCenter.x = x + width / 2;
+          viewBoxCenter.y = y + height / 2;
+        }
+      }
+
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      for (const child of innerSvg.children) {
+        const cloned = child.cloneNode(true);
+        const layerName = file;
+        applyColorRecursive(cloned, color, layerName);
+        g.appendChild(cloned);
+      }
+
+      group.appendChild(g);
+    }
+
+    if (panZoomInstance) {
+      panZoomInstance.destroy();
+    }
+
+    panZoomInstance = svgPanZoom('#combined-svg', {
+      zoomEnabled: true,
+      controlIconsEnabled: false,
+      fit: true,
+      center: true
+    });
+
+    setTimeout(() => {
+      panZoomInstance.zoomBy(3.0);
+    }, 0);
+  }
+
+  function rotateView() {
+    currentRotation = (currentRotation + 90) % 360;
+    const transform = `rotate(${currentRotation}, ${viewBoxCenter.x}, ${viewBoxCenter.y})`;
+    document.getElementById('main-content').setAttribute("transform", transform);
+    setTimeout(() => {
+      panZoomInstance.zoomBy(3.0);
+    }, 0);
+  }
+
+  function downloadSVG() {
+    const svgElement = document.getElementById('combined-svg');
+    const sku = document.getElementById('sku-input').value.trim();
+    const filename = sku ? `${sku}.svg` : 'combined_layers.svg';
+
+    const svgHeader = '<?xml version="1.0" standalone="no"?>\n' +
+                      '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"\n' +
+                      ' "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n';
+
+    const serializer = new XMLSerializer();
+    const svgText = svgHeader + serializer.serializeToString(svgElement);
+
+    const blob = new Blob([svgText], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+</script>
+
+</body>
+</html>
