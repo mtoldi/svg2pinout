@@ -2,29 +2,64 @@
 <html>
 <head>
   <title>SKU Pin Label Editor</title>
-<style>
-  body {
-    font-family: 'source-pro';
-    display: flex;
-    margin: 0;
-    color: #222;
+
+  <style>
+  * {
+    box-sizing: border-box;
   }
 
-  #editor-panel {
+  body {
+    font-family: 'source-pro', sans-serif;
+    margin: 0;
+    color: #222;
+    display: flex;
+    flex-direction: column;
     height: 100vh;
-    width: 320px;
-    border-right: 1px solid #ddd;
-    padding: 1rem;
-    overflow-y: auto;
-    background: #f9f9f9;
+    overflow: hidden;
+  }
+
+  #navbar {
+    background: #333;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+
+  #navbar a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.95rem;
+  }
+
+  #main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
   }
 
   #svg-container {
     flex-grow: 1;
-    border: 1px solid #ccc;
-    margin: 1rem;
-    height: 90vh;
     background: white;
+    border-right: 1px solid #ccc;
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #editor-panel {
+    width: 320px;
+    background: #f9f9f9;
+    padding: 1rem;
+    overflow-y: auto;
+    border-left: 1px solid #ddd;
+  }
+
+  #svg-container svg {
+    width: 100%;
+    height: 100%;
   }
 
   .pin-item {
@@ -58,14 +93,12 @@
     border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 0.85rem;
-    box-sizing: border-box;
   }
 
   .hex-label {
     cursor: pointer;
     text-anchor: middle;
     dominant-baseline: middle;
-    fill: white;
   }
 
   button {
@@ -84,11 +117,6 @@
     background-color: #e0e0e0;
   }
 
-  #svg-container svg {
-    width: 100%;
-    height: 100%;
-  }
-
   circle.pin-highlight {
     stroke: rgb(0, 240, 255);
     stroke-width: 0.5;
@@ -98,7 +126,7 @@
   #svg-controls {
     position: absolute;
     top: 10px;
-    left: 340px;
+    left: 20px;
     z-index: 10;
     display: flex;
     gap: 0.4rem;
@@ -110,32 +138,37 @@
   }
 </style>
 
+
 <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 
 </head>
 <body>
 
-<div style="background:#333; color:white; padding:10px;">
-  <a href="/kicad" style="color:white; margin-right:20px;">KiCad Layers</a>
-  <a href="/editor-upload" style="color:white;">SVG Pin Editor</a>
+<body>
 
-</div>
-
-
-  <div id="editor-panel">
-    <h3>Pinovi</h3>
-    <div id="pin-list"></div>
+  <div id="navbar">
+    <a href="/kicad">KiCad Layers</a>
+    <a href="/editor-upload">SVG Pin Editor</a>
   </div>
 
-  
-  <div id="svg-controls" style="position: absolute; top: 10px; left: 270px; z-index: 10;">
-    <button onclick="zoomIn()">+</button>
-    <button onclick="zoomOut()">−</button>
-    <button onclick="resetZoom()">Reset</button>
-    <button onclick="downloadSVG()">💾 Preuzmi</button>
+  <div id="main-content">
+
+    <div id="editor-panel">
+      <h3>Pinovi</h3>
+      <div id="pin-list"></div>
+    </div>
+
+    <div id="svg-container">
+      <div id="svg-controls">
+        <button onclick="downloadSVG()">💾 Preuzmi</button>
+        <button onclick="rotateOverlay()">↻ Rotiraj</button>
+      </div>
+      <!-- SVG will be loaded here -->
+    </div>
   </div>
 
-  <div id="svg-container"></div>
+</body>
+
 
   <script>
     const container = document.getElementById("svg-container");
@@ -336,19 +369,19 @@ select.id = `${pinId}-color-${labelIndex}`;
 select.className = "label-input";
 
 const labelTypes = [
-  { name: "Pin description", color: "#D1D2D4" },
-  { name: "Power supply pin", color: "#EE4035" },
-  { name: "Ground", color: "#221E1F" },
-  { name: "Control", color: "#FED53E" },
-  { name: "GPIO", color: "#88C284" },
-  { name: "ADC pin", color: "#4777B9" },
-  { name: "DAC pin", color: "#97B8DB" },
-  { name: "SPI comms", color: "#E58F40" },
-  { name: "UART comms", color: "#6A241F" },
-  { name: "I2C comms", color: "#A75383" },
-  { name: "PWM comms", color: "#2E3175" },
-  { name: "Other", color: "#295A32" },
-  { name: "Port name", color: "#ED008C" }
+  { name: "Pin description", color: "#D1D2D4", textColor: "black" },
+  { name: "Power supply pin", color: "#EE4035", textColor: "white" },
+  { name: "Ground", color: "#221E1F", textColor: "white" },
+  { name: "Control", color: "#FED53E", textColor: "black" },
+  { name: "GPIO", color: "#88C284", textColor: "white" },
+  { name: "ADC pin", color: "#4777B9", textColor: "white" },
+  { name: "DAC pin", color: "#97B8DB", textColor: "black" },
+  { name: "SPI comms", color: "#E58F40", textColor: "white" },
+  { name: "UART comms", color: "#6A241F", textColor: "white" },
+  { name: "I2C comms", color: "#A75383", textColor: "white" },
+  { name: "PWM comms", color: "#2E3175", textColor: "white" },
+  { name: "Other", color: "#295A32", textColor: "white" },
+  { name: "Port name", color: "#ED008C", textColor: "white" }
 ];
 
 labelTypes.forEach(type => {
@@ -356,7 +389,7 @@ labelTypes.forEach(type => {
   option.value = type.color;
   option.textContent = type.name;
   option.style.backgroundColor = type.color;
-  option.style.color = "#fff";
+  option.style.color = type.textColor;
   select.appendChild(option);
 });
 
@@ -365,6 +398,11 @@ row.appendChild(select);
 
   container.appendChild(row);
 }
+
+    function getTextColorForHex(hex) {
+      const brightHexes = ["#D1D2D4", "#FED53E", "#97B8DB"];
+      return brightHexes.includes(hex.toUpperCase()) ? "black" : "white";
+    }
 
     function placeAllLabels(pinId, direction) {
       const pin = pinMap.get(pinId);
@@ -477,7 +515,10 @@ row.appendChild(select);
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
       text.setAttribute("x", labelX);
       text.setAttribute("y", labelY + fontSize * 0.1);
+
       text.setAttribute("class", "hex-label");
+      text.setAttribute("fill", getTextColorForHex(colorVal));
+
       text.setAttribute("font-size", `${fontSize}px`);
       text.textContent = inputVal;
 
@@ -513,9 +554,9 @@ function downloadSVG() {
     .hex-label {
       text-anchor: middle;
       dominant-baseline: middle;
-      fill: white;
       font-family: source-pro;
     }
+
     .pin-highlight {
       stroke: none;
       stroke-width: 0.5;
