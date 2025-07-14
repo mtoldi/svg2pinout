@@ -78,6 +78,26 @@ def layers():
 def serve_layer(filename):
     return send_from_directory(SVG_LAYER_FOLDER, filename)
 
+COMPOSER_FOLDER = 'static/composer_upload'
+os.makedirs(COMPOSER_FOLDER, exist_ok=True)
+
+@app.route('/composer', methods=['GET', 'POST'])
+def composer():
+    if request.method == 'POST':
+        f = request.files.get('file')
+        if f and allowed_svg(f.filename):
+            filename = secure_filename("composed.svg")
+            f.save(os.path.join(COMPOSER_FOLDER, filename))
+            return '', 204  # JS će ručno refreshat prikaz
+    return render_template('composer.html')
+
+@app.route('/composer/svg')
+def serve_composer_svg():
+    return send_from_directory(COMPOSER_FOLDER, 'composed.svg')
+
+
+
+
 # === HOME REDIRECT ===
 @app.route('/')
 def home():

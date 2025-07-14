@@ -3,13 +3,15 @@
 <head>
   <title>SKU Pin Label Editor</title>
 
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
+
   <style>
   * {
     box-sizing: border-box;
   }
 
   body {
-    font-family: 'source-pro', sans-serif;
+    font-family: 'Source Code Pro', monospace;
     margin: 0;
     color: #222;
     display: flex;
@@ -32,6 +34,12 @@
     text-decoration: none;
     font-weight: bold;
     font-size: 0.95rem;
+  }
+
+  #navbar a.active {
+    background-color: #555;
+    padding: 6px 12px;
+    border-radius: 5px;
   }
 
   #main-content {
@@ -148,22 +156,23 @@
 
   <div id="navbar">
     <a href="/kicad">KiCad Layers</a>
-    <a href="/editor-upload">SVG Pin Editor</a>
+    <a href="/editor-upload" class="active">SVG Pin Editor</a>
   </div>
 
   <div id="main-content">
 
     <div id="editor-panel">
-      <h3>Pinovi</h3>
-      <div id="pin-list"></div>
+<div style="display: flex; justify-content: space-between; align-items: center;">
+  <h3 style="margin: 0;">Pinovi</h3>
+  <button onclick="downloadSVG()">Preuzmi</button>
+</div>
+<div id="pin-list"></div>
+
     </div>
 
     <div id="svg-container">
       <div id="svg-controls">
-        <button onclick="downloadSVG()">💾 Preuzmi</button>
-        <button onclick="rotateOverlay()">↻ Rotiraj</button>
       </div>
-      <!-- SVG will be loaded here -->
     </div>
   </div>
 
@@ -242,11 +251,10 @@ function initEditor() {
     }
   }
 
-  const viewport = svg.querySelector(".svg-pan-zoom_viewport") || svg;
-
   overlay = document.createElementNS("http://www.w3.org/2000/svg", "g");
   overlay.setAttribute("id", "label-overlay");
-  viewport.appendChild(overlay);
+  (mainGroup || svg).appendChild(overlay);
+
 
   svg.removeAttribute("width");
   svg.removeAttribute("height");
@@ -510,7 +518,7 @@ row.appendChild(select);
       polygon.setAttribute("points", polyPoints.map(p => p.join(",")).join(" "));
       polygon.setAttribute("fill", colorVal);
       polygon.setAttribute("stroke", "black");
-      polygon.setAttribute("stroke-width", "0.1");
+      polygon.setAttribute("stroke-width", "0.08");
 
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
       text.setAttribute("x", labelX);
@@ -541,7 +549,6 @@ row.appendChild(select);
         case 'S': endPoint = polyPoints[3]; break;
       }
       overlay.lastPlacedLabels[pinId][labelIndex] = { endX: endPoint[0], endY: endPoint[1] };
-
     }
 
 function downloadSVG() {
@@ -550,19 +557,23 @@ function downloadSVG() {
 
   // Ugradi osnovne stilove unutar SVG-a
   const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
-  style.textContent = `
-    .hex-label {
-      text-anchor: middle;
-      dominant-baseline: middle;
-      font-family: source-pro;
-    }
 
-    .pin-highlight {
-      stroke: none;
-      stroke-width: 0.5;
-      fill: none;
-    }
-  `;
+  style.textContent = `
+  @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap');
+
+  .hex-label {
+    text-anchor: middle;
+    dominant-baseline: middle;
+    font-family: 'Source Code Pro', monospace;
+  }
+
+  .pin-highlight {
+    stroke: none;
+    stroke-width: 0.5;
+    fill: none;
+  }
+`;
+
   clone.insertBefore(style, clone.firstChild);
 
   // Očisti atribute koji izazivaju probleme

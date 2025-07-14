@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SVG Composer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+  <style>
+    body {
+      font-family: 'Source Code Pro', monospace;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #navbar {
+      background: #333;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    #navbar a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    #navbar a.active {
+      background-color: #555;
+      padding: 6px 12px;
+      border-radius: 5px;
+    }
+
+    #composer-toolbar {
+      background: #f4f4f4;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid #ccc;
+    }
+
+    #composer-area {
+      flex: 1;
+      background: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #composer-area svg {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<div id="navbar">
+  <a href="/kicad">KiCad Layers</a>
+  <a href="/editor-upload">SVG Pin Editor</a>
+  <a href="/composer" class="active">SVG to PDF</a>
+</div>
+
+<div id="composer-toolbar">
+  <input type="file" id="svg-upload" accept=".svg">
+  <button onclick="rotateSVG()">Rotiraj +90°</button>
+  <button onclick="centerSVG()">Centriraj</button>
+  <button onclick="exportAsPDF()">Export to PDF</button>
+</div>
+
+<div id="composer-area"></div>
+
+<script>
+
+  const area = document.getElementById('composer-area');
+  let panZoomInstance = null;
+
+  let currentRotation = 0;
+
+  document.getElementById('svg-upload').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file || !file.name.endsWith('.svg')) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      area.innerHTML = event.target.result;
+      const svg = area.querySelector('svg');
+      if (!svg) return;
+
+      svg.removeAttribute("width");
+      svg.removeAttribute("height");
+      svg.setAttribute("width", "100%");
+      svg.setAttribute("height", "100%");
+
+      if (panZoomInstance) panZoomInstance.destroy();
+      panZoomInstance = svgPanZoom(svg, {
+        zoomEnabled: true,
+        controlIconsEnabled: false,
+        fit: true,
+        center: true,
+        minZoom: 0.0001,
+        maxZoom: 1000,
+        zoomScaleSensitivity: 0.2,
+        panEnabled: true,
+        dblClickZoomEnabled: true,
+        mouseWheelZoomEnabled: true
+      });
+    };
+    reader.readAsText(file);
+  });
+
+function centerSVG() {
+  const svg = area.querySelector("svg");
+  if (!svg) return;
+
+  const g = svg.querySelector("g#main-content") || svg;
+  const bbox = g.getBBox();
+
+  const x = bbox.x;
+  const y = bbox.y;
+  const width = bbox.width;
+  const height = bbox.height;
+
+  svg.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+
+  // Ažuriraj veličinu pan-zooma
+  if (panZoomInstance) {
+    panZoomInstance.resize();
+    panZoomInstance.fit();
+  }
+}
+
+function rotateSVG() {
+  const svg = area.querySelector("svg");
+  if (!svg) return;
+
+  currentRotation = (currentRotation + 90) % 360;
+
+  let g = svg.querySelector("g#main-content");
+  if (!g) {
+    g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    while (svg.firstChild) g.appendChild(svg.firstChild);
+    g.id = "main-content";
+    svg.appendChild(g);
+  }
+
+  const bbox = g.getBBox();
+  const cx = bbox.x + bbox.width / 2;
+  const cy = bbox.y + bbox.height / 2;
+
+  g.setAttribute("transform", `rotate(${currentRotation} ${cx} ${cy})`);
+
+  centerSVG(); // 🠖 pozicioniraj ponovo
+}
+
+
+
+  function exportAsPDF() {
+    const svgElement = area.querySelector("svg");
+    if (!svgElement) return alert("Nema učitanog SVG-a!");
+
+    const clone = svgElement.cloneNode(true);
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+    const svgString = new XMLSerializer().serializeToString(clone);
+    const blob = new Blob([svgString], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "composed.svg";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+</script>
+
+</body>
+</html>
