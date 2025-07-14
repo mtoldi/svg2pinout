@@ -4,7 +4,7 @@
   <title>SKU Pin Label Editor</title>
 <style>
   body {
-    font-family: 'source-pro', sans-serif;
+    font-family: 'source-pro';
     display: flex;
     margin: 0;
     color: #222;
@@ -263,13 +263,7 @@ function initEditor() {
           <button onclick="placeAllLabels('${pinId}', 'S')">S</button>
           <button onclick="placeAllLabels('${pinId}', 'W')">W</button>
           <button onclick="addLabel('${pinId}')">+</button>
-          <div id="${pinId}-labels">
-            <div class="label-row" style="display: flex; align-items: center; gap: 0.4rem; margin-top: 0.3rem;">
-            <input class="label-input" id="${pinId}-input-0" placeholder="Label text" />
-            <input type="color" id="${pinId}-color-0" value="#baf0b1" />
-          </div>
-
-          </div>
+          <div id="${pinId}-labels"></div>
         `;
 
         // Klik na cijeli editor item
@@ -337,19 +331,40 @@ function addLabel(pinId) {
   textInput.id = `${pinId}-input-${labelIndex}`;
   textInput.placeholder = "Label text";
 
-  const colorInput = document.createElement("input");
-  colorInput.type = "color";
-  colorInput.id = `${pinId}-color-${labelIndex}`;
-  colorInput.value = "#baf0b1";
+const select = document.createElement("select");
+select.id = `${pinId}-color-${labelIndex}`;
+select.className = "label-input";
 
-  row.appendChild(textInput);
-  row.appendChild(colorInput);
+const labelTypes = [
+  { name: "Pin description", color: "#D1D2D4" },
+  { name: "Power supply pin", color: "#EE4035" },
+  { name: "Ground", color: "#221E1F" },
+  { name: "Control", color: "#FED53E" },
+  { name: "GPIO", color: "#88C284" },
+  { name: "ADC pin", color: "#4777B9" },
+  { name: "DAC pin", color: "#97B8DB" },
+  { name: "SPI comms", color: "#E58F40" },
+  { name: "UART comms", color: "#6A241F" },
+  { name: "I2C comms", color: "#A75383" },
+  { name: "PWM comms", color: "#2E3175" },
+  { name: "Other", color: "#295A32" },
+  { name: "Port name", color: "#ED008C" }
+];
+
+labelTypes.forEach(type => {
+  const option = document.createElement("option");
+  option.value = type.color;
+  option.textContent = type.name;
+  option.style.backgroundColor = type.color;
+  option.style.color = "#fff";
+  select.appendChild(option);
+});
+
+row.appendChild(textInput);
+row.appendChild(select);
+
   container.appendChild(row);
 }
-
-
-
-
 
     function placeAllLabels(pinId, direction) {
       const pin = pinMap.get(pinId);
@@ -373,9 +388,8 @@ function addLabel(pinId) {
         }
       }
 
-
       const inputVal = document.getElementById(`${pinId}-input-${labelIndex}`).value;
-      const colorVal = document.getElementById(`${pinId}-color-${labelIndex}`)?.value || "#BAF0B1";
+      const colorVal = document.getElementById(`${pinId}-color-${labelIndex}`)?.value || "#D1D2D4";
       const fontSize = 1.3;
       const padding = 0.8;
       const spacing = (labelIndex === 0) ? 5 : 1;
