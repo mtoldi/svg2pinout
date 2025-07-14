@@ -251,6 +251,16 @@ function initEditor() {
     }
   }
 
+  function applyRotation(x, y, angleDeg, cx, cy) {
+    const angleRad = angleDeg * Math.PI / 180;
+    const dx = x - cx;
+    const dy = y - cy;
+    const rx = dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
+    const ry = dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
+    return { x: cx + rx, y: cy + ry };
+  }
+
+
   overlay = document.createElementNS("http://www.w3.org/2000/svg", "g");
   overlay.setAttribute("id", "label-overlay");
   (mainGroup || svg).appendChild(overlay);
@@ -266,8 +276,8 @@ function initEditor() {
     controlIconsEnabled: false,
     fit: true,
     center: true,
-    minZoom: 0.5,
-    maxZoom: 20,
+    minZoom: 0.005,
+    maxZoom: 100,
     zoomScaleSensitivity: 0.2,
     panEnabled: true,
     dblClickZoomEnabled: true,
@@ -407,6 +417,16 @@ row.appendChild(select);
   container.appendChild(row);
 }
 
+function rotatePoint([x, y], cx, cy, angleDeg) {
+  const angleRad = angleDeg * Math.PI / 180;
+  const dx = x - cx;
+  const dy = y - cy;
+  const rx = dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
+  const ry = dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
+  return [cx + rx, cy + ry];
+}
+
+
     function getTextColorForHex(hex) {
       const brightHexes = ["#D1D2D4", "#FED53E", "#97B8DB"];
       return brightHexes.includes(hex.toUpperCase()) ? "black" : "white";
@@ -421,135 +441,153 @@ row.appendChild(select);
       }
     }
 
-    function placeLabel(pinId, direction, labelIndex = 0) {
-      if (pinId !== selectedPinId) return;
-      const pin = pinMap.get(pinId);
-      let anchorX = pin.cx, anchorY = pin.cy;
+function placeLabel(pinId, direction, labelIndex = 0) {
+  if (pinId !== selectedPinId) return;
+  const pin = pinMap.get(pinId);
+  let anchorX = pin.cx, anchorY = pin.cy;
 
-      if (labelIndex > 0) {
-        const prev = overlay.lastPlacedLabels?.[pinId]?.[labelIndex - 1];
-        if (prev) {
-          anchorX = prev.endX;
-          anchorY = prev.endY;
-        }
-      }
-
-      const inputVal = document.getElementById(`${pinId}-input-${labelIndex}`).value;
-      const colorVal = document.getElementById(`${pinId}-color-${labelIndex}`)?.value || "#D1D2D4";
-      const fontSize = 1.3;
-      const padding = 0.8;
-      const spacing = (labelIndex === 0) ? 5 : 1;
-
-      const tempText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      tempText.setAttribute("x", -9999);
-      tempText.setAttribute("y", -9999);
-      tempText.setAttribute("font-size", `${fontSize}px`);
-      tempText.textContent = inputVal;
-      overlay.appendChild(tempText);
-      const textWidth = tempText.getBBox().width;
-      overlay.removeChild(tempText);
-
-      const bodyWidth = textWidth + padding * 3;
-      const bodyHeight = fontSize + padding;
-      const inset = bodyHeight * 0.3;
-
-      let polyPoints = "";
-      let labelX = anchorX, labelY = anchorY;
-      let lineX = anchorX, lineY = anchorY;
-      let rotate = null;
-
-      let baseX, baseY;
-
-      switch (direction) {
-        case 'E':
-          baseX = anchorX + spacing;
-          baseY = anchorY - bodyHeight / 2;
-          labelX = baseX + bodyWidth / 2;
-          labelY = anchorY;
-          lineX = baseX;
-          lineY = anchorY;
-          break;
-        case 'W':
-          baseX = anchorX - spacing - bodyWidth;
-          baseY = anchorY - bodyHeight / 2;
-          labelX = baseX + bodyWidth / 2;
-          labelY = anchorY;
-          lineX = baseX + bodyWidth;
-          lineY = anchorY;
-          break;
-        case 'N':
-          baseX = anchorX - bodyWidth / 2;
-          baseY = anchorY - spacing - bodyHeight;
-          labelX = anchorX;
-          labelY = baseY + bodyHeight / 2;
-          lineX = anchorX;
-          lineY = baseY + bodyHeight;
-          rotate = `rotate(+90 ${labelX} ${labelY})`;
-          break;
-        case 'S':
-          baseX = anchorX - bodyWidth / 2;
-          baseY = anchorY + spacing;
-          labelX = anchorX;
-          labelY = baseY + bodyHeight / 2;
-          lineX = anchorX;
-          lineY = baseY;
-          rotate = `rotate(+90 ${labelX} ${labelY})`;
-          break;
-      }
-
-      polyPoints = [
-        [baseX + inset, baseY],
-        [baseX + bodyWidth - inset, baseY],
-        [baseX + bodyWidth, baseY + bodyHeight / 2],
-        [baseX + bodyWidth - inset, baseY + bodyHeight],
-        [baseX + inset, baseY + bodyHeight],
-        [baseX, baseY + bodyHeight / 2]
-      ];
-
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("x1", anchorX);
-      line.setAttribute("y1", anchorY);
-      line.setAttribute("x2", lineX);
-      line.setAttribute("y2", lineY);
-      line.setAttribute("stroke", "black");
-      line.setAttribute("stroke-width", "0.2");
-
-      const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-      polygon.setAttribute("points", polyPoints.map(p => p.join(",")).join(" "));
-      polygon.setAttribute("fill", colorVal);
-      polygon.setAttribute("stroke", "black");
-      polygon.setAttribute("stroke-width", "0.08");
-
-      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      text.setAttribute("x", labelX);
-      text.setAttribute("y", labelY + fontSize * 0.1);
-
-      text.setAttribute("class", "hex-label");
-      text.setAttribute("fill", getTextColorForHex(colorVal));
-
-      text.setAttribute("font-size", `${fontSize}px`);
-      text.textContent = inputVal;
-
-      if (rotate) {
-        polygon.setAttribute("transform", rotate);
-        text.setAttribute("transform", rotate);
-      }
-
-      overlay.appendChild(line);
-      overlay.appendChild(polygon);
-      overlay.appendChild(text);
-
-      if (!overlay.lastPlacedLabels) overlay.lastPlacedLabels = {};
-      if (!overlay.lastPlacedLabels[pinId]) overlay.lastPlacedLabels[pinId] = [];
-      let endPoint;
-      switch (direction) {
-        case 'E': endPoint = polyPoints[2]; break;
-        case 'W': endPoint = polyPoints[5]; break;
-        case 'N': endPoint = polyPoints[0]; break;
-        case 'S': endPoint = polyPoints[3]; break;
-      }
-      overlay.lastPlacedLabels[pinId][labelIndex] = { endX: endPoint[0], endY: endPoint[1] };
+  if (labelIndex > 0) {
+    const prev = overlay.lastPlacedLabels?.[pinId]?.[labelIndex - 1];
+    if (prev) {
+      anchorX = prev.endX;
+      anchorY = prev.endY;
     }
+  }
+
+  const inputVal = document.getElementById(`${pinId}-input-${labelIndex}`).value;
+  const colorVal = document.getElementById(`${pinId}-color-${labelIndex}`)?.value || "#D1D2D4";
+  const fontSize = 1.3;
+  const padding = 0.8;
+  const spacing = (labelIndex === 0) ? 5 : 1;
+
+  const tempText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  tempText.setAttribute("x", -9999);
+  tempText.setAttribute("y", -9999);
+  tempText.setAttribute("font-size", `${fontSize}px`);
+  tempText.textContent = inputVal;
+  overlay.appendChild(tempText);
+  const textWidth = tempText.getBBox().width;
+  overlay.removeChild(tempText);
+
+  const bodyWidth = textWidth + padding * 3;
+  const bodyHeight = fontSize + padding;
+  const inset = bodyHeight * 0.3;
+
+  let baseX, baseY;
+  let baseLabelX, baseLabelY;
+  let baseLineX, baseLineY;
+  let rotate = null;
+  let polyPoints;
+
+  if (direction === 'E' || direction === 'W') {
+    const isEast = direction === 'E';
+    const sign = isEast ? 1 : -1;
+
+    baseX = anchorX + sign * spacing;
+    if (!isEast) baseX -= bodyWidth;
+
+    baseY = anchorY - bodyHeight / 2;
+    baseLabelX = baseX + bodyWidth / 2;
+    baseLabelY = anchorY;
+    baseLineX = isEast ? baseX : baseX + bodyWidth;
+    baseLineY = anchorY;
+
+    polyPoints = [
+      [baseX + inset, baseY],
+      [baseX + bodyWidth - inset, baseY],
+      [baseX + bodyWidth, baseY + bodyHeight / 2],
+      [baseX + bodyWidth - inset, baseY + bodyHeight],
+      [baseX + inset, baseY + bodyHeight],
+      [baseX, baseY + bodyHeight / 2]
+    ];
+  } else {
+    // N or S – simulate E or W then rotate
+    const baseDirection = direction === 'N' ? 'W' : 'E';
+    const sign = baseDirection === 'E' ? 1 : -1;
+
+    baseX = anchorX + sign * spacing;
+    if (baseDirection === 'W') baseX -= bodyWidth;
+
+    baseY = anchorY - bodyHeight / 2;
+    baseLabelX = baseX + bodyWidth / 2;
+    baseLabelY = anchorY;
+    baseLineX = baseDirection === 'E' ? baseX : baseX + bodyWidth;
+    baseLineY = anchorY;
+
+    polyPoints = [
+      [baseX + inset, baseY],
+      [baseX + bodyWidth - inset, baseY],
+      [baseX + bodyWidth, baseY + bodyHeight / 2],
+      [baseX + bodyWidth - inset, baseY + bodyHeight],
+      [baseX + inset, baseY + bodyHeight],
+      [baseX, baseY + bodyHeight / 2]
+    ];
+
+    rotate = `rotate(90 ${anchorX} ${anchorY})`;
+  }
+
+  const labelX = baseLabelX;
+  const labelY = baseLabelY;
+  const lineX = baseLineX;
+  const lineY = baseLineY;
+
+
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", anchorX);
+  line.setAttribute("y1", anchorY);
+
+  let finalLineX = lineX;
+  let finalLineY = lineY;
+
+  if (direction === 'N' || direction === 'S') {
+    [finalLineX, finalLineY] = rotatePoint([lineX, lineY], anchorX, anchorY, 90);
+  }
+
+  line.setAttribute("x2", finalLineX);
+  line.setAttribute("y2", finalLineY);
+  line.setAttribute("stroke", "black");
+  line.setAttribute("stroke-width", "0.2");
+
+
+  const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+  polygon.setAttribute("points", polyPoints.map(p => p.join(",")).join(" "));
+  polygon.setAttribute("fill", colorVal);
+  polygon.setAttribute("stroke", "black");
+  polygon.setAttribute("stroke-width", "0.08");
+
+  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text.setAttribute("x", labelX);
+  text.setAttribute("y", labelY + fontSize * 0.1);
+  text.setAttribute("class", "hex-label");
+  text.setAttribute("fill", getTextColorForHex(colorVal));
+  text.setAttribute("font-size", `${fontSize}px`);
+  text.textContent = inputVal;
+
+  if (rotate) {
+    polygon.setAttribute("transform", rotate);
+    text.setAttribute("transform", rotate);
+  }
+
+  overlay.appendChild(line);
+  overlay.appendChild(polygon);
+  overlay.appendChild(text);
+
+  if (!overlay.lastPlacedLabels) overlay.lastPlacedLabels = {};
+  if (!overlay.lastPlacedLabels[pinId]) overlay.lastPlacedLabels[pinId] = [];
+
+  // Get endPoint for chaining
+  let endPoint;
+  if (direction === 'E') endPoint = polyPoints[2];
+  else if (direction === 'W') endPoint = polyPoints[5];
+  else if (direction === 'N') endPoint = rotatePoint(polyPoints[5], anchorX, anchorY, 90);
+  else if (direction === 'S') endPoint = rotatePoint(polyPoints[2], anchorX, anchorY, 90);
+
+  overlay.lastPlacedLabels[pinId][labelIndex] = {
+    endX: endPoint[0],
+    endY: endPoint[1]
+  };
+}
+
 
 function downloadSVG() {
   const svg = container.querySelector("svg");
