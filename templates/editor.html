@@ -429,6 +429,16 @@ function rotatePoint([x, y], cx, cy, angleDeg) {
   return [cx + rx, cy + ry];
 }
 
+function pinHasPWMLabel(pinId) {
+  const count = document.querySelectorAll(`#${pinId}-labels .label-row`).length;
+  for (let i = 0; i < count; i++) {
+    const color = document.getElementById(`${pinId}-color-${i}`)?.value?.toUpperCase();
+    if (color === "#2E3175") return true;
+  }
+  return false;
+}
+
+
     function getTextColorForHex(hex) {
       const brightHexes = ["#D1D2D4", "#FED53E", "#97B8DB"];
       return brightHexes.includes(hex.toUpperCase()) ? "black" : "white";
@@ -543,9 +553,45 @@ function placeLabel(pinId, direction, labelIndex = 0) {
   const lineX = baseLineX;
   const lineY = baseLineY;
 
-  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-  line.setAttribute("x1", anchorX);
-  line.setAttribute("y1", anchorY);
+
+  let line;
+  const hasPWM = pinHasPWMLabel(pinId);
+  if (labelIndex === 0 && hasPWM) {
+    // Zaobljeni squiggly path
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const segments = 6;
+    const amplitude = 1;
+    const segmentLengthX = (lineX - anchorX) / segments;
+    const segmentLengthY = (lineY - anchorY) / segments;
+
+    let d = `M ${anchorX} ${anchorY}`;
+    for (let i = 0; i < segments; i++) {
+      const startX = anchorX + segmentLengthX * i;
+      const startY = anchorY + segmentLengthY * i;
+      const endX = anchorX + segmentLengthX * (i + 1);
+      const endY = anchorY + segmentLengthY * (i + 1);
+
+      const controlX = (startX + endX) / 2;
+      const controlY = (startY + endY) / 2 + (i % 2 === 0 ? -amplitude : amplitude);
+
+      d += ` Q ${controlX} ${controlY}, ${endX} ${endY}`;
+    }
+
+    path.setAttribute("d", d);
+    path.setAttribute("stroke", "black");
+    path.setAttribute("stroke-width", "0.2");
+    path.setAttribute("fill", "none");
+    path.setAttribute("data-pin", pinId);
+    path.setAttribute("data-label-index", labelIndex);
+    line = path;
+  } else {
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    l.setAttribute("x1", anchorX);
+    l.setAttribute("y1", anchorY);
+    line = l;
+  }
+
+
 
   let finalLineX = lineX;
   let finalLineY = lineY;
@@ -558,12 +604,20 @@ function placeLabel(pinId, direction, labelIndex = 0) {
     }
   }
 
-  line.setAttribute("x2", finalLineX);
-  line.setAttribute("y2", finalLineY);
-  line.setAttribute("stroke", "black");
-  line.setAttribute("stroke-width", "0.2");
-  line.setAttribute("data-pin", pinId);
-  line.setAttribute("data-label-index", labelIndex);
+
+  if (line.tagName === "line") {
+    line.setAttribute("x2", finalLineX);
+    line.setAttribute("y2", finalLineY);
+    line.setAttribute("stroke", "black");
+    line.setAttribute("stroke-width", "0.2");
+    line.setAttribute("data-pin", pinId);
+    line.setAttribute("data-label-index", labelIndex);
+  }
+  if (rotate && line.tagName !== "line") {
+    line.setAttribute("transform", rotate);
+}
+
+
 
   const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
   polygon.setAttribute("points", polyPoints.map(p => p.join(",")).join(" "));
