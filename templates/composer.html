@@ -52,8 +52,19 @@
     }
 
     #composer-area svg {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
+    }
+
+    #graphics-svg {
+      pointer-events: auto;
+    }
+
+    #user-svg {
+      pointer-events: none;
     }
   </style>
 </head>
@@ -70,16 +81,47 @@
   <button onclick="rotateSVG()">Rotiraj +90°</button>
   <button onclick="centerSVG()">Centriraj</button>
   <button onclick="exportAsPDF()">Export to PDF</button>
+  <button id="switch-layer">Layer: GRAPHICS</button>
 </div>
 
-<div id="composer-area"></div>
+<div id="composer-area">
+  <svg id="graphics-svg" xmlns="http://www.w3.org/2000/svg">
+    <g id="graphics-layer"></g>
+  </svg>
+  <svg id="user-svg" xmlns="http://www.w3.org/2000/svg">
+    <g id="user-layer"></g>
+  </svg>
+</div>
 
 <script>
+  const graphicsSVG = document.getElementById("graphics-svg");
+  const graphicsLayer = document.getElementById("graphics-layer");
+  const userSVG = document.getElementById("user-svg");
+  const userLayer = document.getElementById("user-layer");
+  const switchButton = document.getElementById("switch-layer");
 
-  const area = document.getElementById('composer-area');
+  let currentLayer = "graphics";
   let panZoomInstance = null;
-
   let currentRotation = 0;
+
+  function updateLayerMode() {
+    if (currentLayer === "graphics") {
+      graphicsSVG.style.pointerEvents = "auto";
+      userSVG.style.pointerEvents = "none";
+      switchButton.textContent = "Layer: GRAPHICS";
+    } else {
+      graphicsSVG.style.pointerEvents = "none";
+      userSVG.style.pointerEvents = "auto";
+      switchButton.textContent = "Layer: USER";
+    }
+  }
+
+  switchButton.addEventListener("click", () => {
+    currentLayer = currentLayer === "graphics" ? "user" : "graphics";
+    updateLayerMode();
+  });
+
+  updateLayerMode(); // inicializacija
 
   document.getElementById('svg-upload').addEventListener('change', e => {
     const file = e.target.files[0];
@@ -87,86 +129,97 @@
 
     const reader = new FileReader();
     reader.onload = function(event) {
-      area.innerHTML = event.target.result;
-      const svg = area.querySelector('svg');
-      if (!svg) return;
+  const tempContainer = document.createElement("div");
+  tempContainer.innerHTML = event.target.result;
+  const incomingSVG = tempContainer.querySelector("svg");
+  if (!incomingSVG) return;
 
-      svg.removeAttribute("width");
-      svg.removeAttribute("height");
-      svg.setAttribute("width", "100%");
-      svg.setAttribute("height", "100%");
+  // Ukloni sve prethodne stvari iz user-layer
+  userLayer.innerHTML = "";
 
-      if (panZoomInstance) panZoomInstance.destroy();
-      panZoomInstance = svgPanZoom(svg, {
-        zoomEnabled: true,
-        controlIconsEnabled: false,
-        fit: true,
-        center: true,
-        minZoom: 0.0001,
-        maxZoom: 1000,
-        zoomScaleSensitivity: 0.2,
-        panEnabled: true,
-        dblClickZoomEnabled: true,
-        mouseWheelZoomEnabled: true
-      });
-    };
+  // Kopiraj sve child elemente iz učitanog SVG-a u user-layer
+  while (incomingSVG.childNodes.length > 0) {
+    userLayer.appendChild(incomingSVG.childNodes[0]);
+  }
+
+  // Ako originalni SVG ima viewBox – preuzmi ga
+  if (incomingSVG.hasAttribute("viewBox")) {
+    userSVG.setAttribute("viewBox", incomingSVG.getAttribute("viewBox"));
+  }
+
+  // Resetiraj rotaciju
+  currentRotation = 0;
+
+  // Aktiviraj pan-zoom nad userSVG
+  if (panZoomInstance) panZoomInstance.destroy();
+  panZoomInstance = svgPanZoom(userSVG, {
+    zoomEnabled: true,
+    controlIconsEnabled: false,
+    fit: true,
+    center: true,
+    minZoom: 0.0001,
+    maxZoom: 1000,
+    zoomScaleSensitivity: 0.2,
+    panEnabled: true,
+    dblClickZoomEnabled: true,
+    mouseWheelZoomEnabled: true
+  });
+};
+
     reader.readAsText(file);
   });
 
-function centerSVG() {
-  const svg = area.querySelector("svg");
-  if (!svg) return;
 
-  const g = svg.querySelector("g#main-content") || svg;
-  const bbox = g.getBBox();
-
-  const x = bbox.x;
-  const y = bbox.y;
-  const width = bbox.width;
-  const height = bbox.height;
-
-  svg.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
-
-  // Ažuriraj veličinu pan-zooma
-  if (panZoomInstance) {
-    panZoomInstance.resize();
-    panZoomInstance.fit();
-  }
-}
-
-function rotateSVG() {
-  const svg = area.querySelector("svg");
-  if (!svg) return;
-
-  currentRotation = (currentRotation + 90) % 360;
-
-  let g = svg.querySelector("g#main-content");
-  if (!g) {
-    g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    while (svg.firstChild) g.appendChild(svg.firstChild);
-    g.id = "main-content";
-    svg.appendChild(g);
+  function centerSVG() {
+    const g = userLayer.querySelector("#main-content");
+    if (!g) return;
+    
+    const bbox = g.getBBox();
+    
+    const padding = 50; // ili više ako treba
+    
+    const x = bbox.x - padding;
+    const y = bbox.y - padding;
+    const width = bbox.width + padding * 2;
+    const height = bbox.height + padding * 2;
+    
+    userSVG.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
+    
+    if (panZoomInstance) {
+      panZoomInstance.resize();
+      panZoomInstance.fit();
+    }
   }
 
-  const bbox = g.getBBox();
-  const cx = bbox.x + bbox.width / 2;
-  const cy = bbox.y + bbox.height / 2;
 
-  g.setAttribute("transform", `rotate(${currentRotation} ${cx} ${cy})`);
+  function rotateSVG() {
+    const g = userLayer.querySelector("#main-content");
+    if (!g) return;
 
-  centerSVG(); // 🠖 pozicioniraj ponovo
-}
+    currentRotation = (currentRotation + 90) % 360;
 
+    const bbox = g.getBBox();
+    const cx = bbox.x + bbox.width / 2;
+    const cy = bbox.y + bbox.height / 2;
 
+    g.setAttribute("transform", `rotate(${currentRotation} ${cx} ${cy})`);
+
+    centerSVG();
+  }
 
   function exportAsPDF() {
-    const svgElement = area.querySelector("svg");
-    if (!svgElement) return alert("Nema učitanog SVG-a!");
+    const exportSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    exportSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    exportSVG.setAttribute("width", "1000");
+    exportSVG.setAttribute("height", "1000");
 
-    const clone = svgElement.cloneNode(true);
-    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const graphicsClone = graphicsLayer.cloneNode(true);
+    const userClone = userLayer.cloneNode(true);
 
-    const svgString = new XMLSerializer().serializeToString(clone);
+    exportSVG.appendChild(graphicsClone);
+    exportSVG.appendChild(userClone);
+
+    const svgString = new XMLSerializer().serializeToString(exportSVG);
     const blob = new Blob([svgString], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
 
