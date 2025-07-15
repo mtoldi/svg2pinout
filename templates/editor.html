@@ -315,6 +315,8 @@ function initEditor() {
           <button onclick="placeAllLabels('${pinId}', 'W')">W</button>
           <button onclick="addLabel('${pinId}')">+</button>
           <div id="${pinId}-labels"></div>
+          <button onclick="placeAllLabels('${pinId}', 'NM')">NM</button>
+          <button onclick="placeAllLabels('${pinId}', 'SM')">SM</button>
         `;
 
         // Klik na cijeli editor item
@@ -426,7 +428,6 @@ function rotatePoint([x, y], cx, cy, angleDeg) {
   return [cx + rx, cy + ry];
 }
 
-
     function getTextColorForHex(hex) {
       const brightHexes = ["#D1D2D4", "#FED53E", "#97B8DB"];
       return brightHexes.includes(hex.toUpperCase()) ? "black" : "white";
@@ -479,8 +480,11 @@ function placeLabel(pinId, direction, labelIndex = 0) {
   let rotate = null;
   let polyPoints;
 
-  if (direction === 'E' || direction === 'W') {
-    const isEast = direction === 'E';
+  if (direction === 'E' || direction === 'W' || direction === 'NM' || direction === 'SM') {
+    // For NM and SM, simulate E or W then rotate
+    const isNM = direction === 'NM';
+    const isSM = direction === 'SM';
+    const isEast = direction === 'E' || isNM;
     const sign = isEast ? 1 : -1;
 
     baseX = anchorX + sign * spacing;
@@ -500,8 +504,11 @@ function placeLabel(pinId, direction, labelIndex = 0) {
       [baseX + inset, baseY + bodyHeight],
       [baseX, baseY + bodyHeight / 2]
     ];
+
+    if (isNM) rotate = `rotate(-90 ${anchorX} ${anchorY})`;
+    if (isSM) rotate = `rotate(-90 ${anchorX} ${anchorY})`;
   } else {
-    // N or S – simulate E or W then rotate
+    // N or S – simulate E or W then rotate 90
     const baseDirection = direction === 'N' ? 'W' : 'E';
     const sign = baseDirection === 'E' ? 1 : -1;
 
@@ -531,7 +538,6 @@ function placeLabel(pinId, direction, labelIndex = 0) {
   const lineX = baseLineX;
   const lineY = baseLineY;
 
-
   const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.setAttribute("x1", anchorX);
   line.setAttribute("y1", anchorY);
@@ -539,15 +545,18 @@ function placeLabel(pinId, direction, labelIndex = 0) {
   let finalLineX = lineX;
   let finalLineY = lineY;
 
-  if (direction === 'N' || direction === 'S') {
-    [finalLineX, finalLineY] = rotatePoint([lineX, lineY], anchorX, anchorY, 90);
+  if (direction === 'N' || direction === 'S' || direction === 'NM' || direction === 'SM') {
+    if (direction === 'NM' || direction === 'SM') {
+      [finalLineX, finalLineY] = rotatePoint([lineX, lineY], anchorX, anchorY, -90);
+    } else {
+      [finalLineX, finalLineY] = rotatePoint([lineX, lineY], anchorX, anchorY, 90);
+    }
   }
 
   line.setAttribute("x2", finalLineX);
   line.setAttribute("y2", finalLineY);
   line.setAttribute("stroke", "black");
   line.setAttribute("stroke-width", "0.2");
-
 
   const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
   polygon.setAttribute("points", polyPoints.map(p => p.join(",")).join(" "));
@@ -581,6 +590,8 @@ function placeLabel(pinId, direction, labelIndex = 0) {
   else if (direction === 'W') endPoint = polyPoints[5];
   else if (direction === 'N') endPoint = rotatePoint(polyPoints[5], anchorX, anchorY, 90);
   else if (direction === 'S') endPoint = rotatePoint(polyPoints[2], anchorX, anchorY, 90);
+  else if (direction === 'NM') endPoint = rotatePoint(polyPoints[2], anchorX, anchorY, -90);
+  else if (direction === 'SM') endPoint = rotatePoint(polyPoints[5], anchorX, anchorY, -90);
 
   overlay.lastPlacedLabels[pinId][labelIndex] = {
     endX: endPoint[0],
