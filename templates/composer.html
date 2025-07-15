@@ -95,7 +95,9 @@
   <button onclick="downloadA4SVG()">Export A4 SVG</button>
   <button id="switch-layer">Layer: GRAPHICS</button>
   <input type="text" id="title-input" placeholder="Upiši naziv (npr. DasDuino Core)" style="flex: 1; max-width: 300px;">
+  <input type="text" id="sku-input" placeholder="Upiši SKU (npr. DCORE01)" style="max-width: 200px;">
   <button onclick="addTitleBox()">Dodaj naslov</button>
+  <button onclick="addPinLegend()">Pins</button>
 </div>
 
 <div id="composer-area">
@@ -223,54 +225,162 @@
     isDragging = false;
   });
 
-  function addTitleBox() {
-    const titleInput = document.getElementById("title-input");
-    const rawText = titleInput.value.trim();
-    if (!rawText) return;
+function addTitleBox() {
+  const titleInput = document.getElementById("title-input");
+  const skuInput = document.getElementById("sku-input");
 
-    const title = rawText.toUpperCase();
-    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  const rawTitle = titleInput.value.trim();
+  const rawSKU = skuInput.value.trim();
+  if (!rawTitle || !rawSKU) return;
 
-    const x = 30;
-    const y = 30;
-    const width = 800;
-    const height = 50;
-    const cut = 10;
+  const title = rawTitle.toUpperCase();
+  const skuText = `solde.red/${rawSKU}`;
 
+  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+  // Naslovni ljubičasti pravokutnik
+  const x1 = 30;
+  const y = 30;
+  const width1 = 800;
+  const height = 50;
+  const cut = 10;
+
+  const titlePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  titlePath.setAttribute("d", `
+    M${x1},${y} 
+    H${x1 + width1} 
+    V${y + height} 
+    H${x1 + cut} 
+    L${x1},${y + height - cut} 
+    Z
+  `);
+  titlePath.setAttribute("fill", "#500B76");
+
+  const titleText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  titleText.setAttribute("x", x1 + width1 / 2);
+  titleText.setAttribute("y", y + height / 2);
+  titleText.setAttribute("text-anchor", "middle");
+  titleText.setAttribute("dominant-baseline", "middle");
+  titleText.setAttribute("fill", "white");
+  titleText.setAttribute("font-size", "20");
+  titleText.setAttribute("font-family", "Source Code Pro, monospace");
+
+  const boldPart = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+  boldPart.setAttribute("font-weight", "bold");
+  boldPart.textContent = title;
+
+  const suffixPart = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+  suffixPart.setAttribute("font-weight", "normal");
+  suffixPart.textContent = " - Pinout";
+
+  titleText.appendChild(boldPart);
+  titleText.appendChild(suffixPart);
+
+  // Plavi pravokutnik sa SKU linkom
+  const x2 = x1 + width1 + 20;
+  const width2 = 230;
+
+  const skuPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  skuPath.setAttribute("d", `
+    M${x2},${y} 
+    H${x2 + width2} 
+    V${y + height} 
+    H${x2 + cut} 
+    L${x2},${y + height - cut} 
+    Z
+  `);
+  skuPath.setAttribute("fill", "#00C0DE");
+
+  const skuTextEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  skuTextEl.setAttribute("x", x2 + width2 / 2);
+  skuTextEl.setAttribute("y", y + height / 2);
+  skuTextEl.setAttribute("text-anchor", "middle");
+  skuTextEl.setAttribute("dominant-baseline", "middle");
+  skuTextEl.setAttribute("fill", "white");
+  skuTextEl.setAttribute("font-size", "16");
+  skuTextEl.setAttribute("font-family", "Source Code Pro, monospace");
+  skuTextEl.textContent = skuText;
+
+  // Dodaj sve elemente u zajedničku grupu
+  group.appendChild(titlePath);
+  group.appendChild(titleText);
+  group.appendChild(skuPath);
+  group.appendChild(skuTextEl);
+
+  graphicsLayer.appendChild(group);
+}
+
+function addPinLegend() {
+  const startX = 850; // x pozicija plave linije i kvadratića
+  const startY = 250; // gdje počinje prvi pin
+  const boxSize = 16;
+  const boxGap = 8;
+  const textOffset = 10;
+
+  const data = [
+    { label: "Pin description", color: "#D1D2D4" },
+    { label: "Power supply pin", color: "#EE4035" },
+    { label: "Ground", color: "#221E1F" },
+    { label: "Control", color: "#FED53E" },
+    { label: "GPIO", color: "#88C284" },
+    { label: "ADC pin", color: "#4777B9" },
+    { label: "DAC pin", color: "#97B8DB" },
+    { label: "SPI comms", color: "#E58F40" },
+    { label: "UART comms", color: "#6A241F" },
+    { label: "I2C comms", color: "#A75383" },
+    { label: "PWM comms", color: "#2E3175" },
+    { label: "Other", color: "#295A32" },
+    { label: "Port name", color: "#ED008C" }
+  ];
+
+  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+  // Crtanje vertikalne plave crte
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", startX);
+  line.setAttribute("y1", 100);
+  line.setAttribute("x2", startX);
+  line.setAttribute("y2", A4_HEIGHT - 40);
+  line.setAttribute("stroke", "#00C0DE");
+  line.setAttribute("stroke-width", 2);
+  group.appendChild(line);
+
+  // Dodavanje svakog pin opisa
+  data.forEach((item, index) => {
+    const y = startY + index * (boxSize + boxGap);
+
+    // Odrezani kvadrat (donji lijevi kut)
+    const cut = 3;
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", `
-      M${x},${y} 
-      H${x + width} 
-      V${y + height} 
-      H${x + cut} 
-      L${x},${y + height - cut} 
+      M${startX + 10},${y}
+      H${startX + 10 + boxSize}
+      V${y + boxSize}
+      H${startX + 10 + cut}
+      L${startX + 10},${y + boxSize - cut}
       Z
     `);
-    path.setAttribute("fill", "#500B76");
-
-    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text.setAttribute("x", x + width / 2);
-    text.setAttribute("y", y + height / 2);
-    text.setAttribute("text-anchor", "middle");
-    text.setAttribute("dominant-baseline", "middle");
-    text.setAttribute("fill", "white");
-    text.setAttribute("font-size", "20");
-    text.setAttribute("font-family", "Source Code Pro, monospace");
-
-    const boldPart = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-    boldPart.setAttribute("font-weight", "bold");
-    boldPart.textContent = title;
-
-    const suffixPart = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-    suffixPart.setAttribute("font-weight", "normal");
-    suffixPart.textContent = " - Pinout";
-
-    text.appendChild(boldPart);
-    text.appendChild(suffixPart);
+    path.setAttribute("fill", item.color);
     group.appendChild(path);
+
+    // Tekst
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", startX + 10 + boxSize + textOffset);
+    text.setAttribute("y", y + boxSize / 2);
+    text.setAttribute("dominant-baseline", "middle");
+    text.setAttribute("fill", "#500B76");
+    text.setAttribute("font-size", "15");
+    text.setAttribute("font-family", "Source Code Pro, monospace");
+    text.textContent = item.label;
     group.appendChild(text);
-    graphicsLayer.appendChild(group);
-  }
+  });
+
+  graphicsLayer.appendChild(group);
+}
+
+
+
+
 
   function downloadA4SVG() {
     const exportSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
