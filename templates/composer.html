@@ -39,9 +39,24 @@
       background: #f4f4f4;
       padding: 10px;
       display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .toolbar-top-row {
+      display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       align-items: center;
-      border-bottom: 1px solid #ccc;
+    }
+
+    .toolbar-jumper-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      width: 100%;
     }
 
     #composer-area {
@@ -87,27 +102,26 @@
 </div>
 
 <div id="composer-toolbar">
-  <input type="file" id="svg-upload" accept=".svg">
-  <button onclick="rotateSVG()">Rotiraj +90°</button>
-  <button onclick="zoomIn()">Povećaj</button>
-  <button onclick="zoomOut()">Smanji</button>
-
-  <button onclick="downloadA4SVG()">Export A4 SVG</button>
-  <button id="switch-layer">Layer: GRAPHICS</button>
-  <input type="text" id="title-input" placeholder="Upiši naziv (npr. DasDuino Core)" style="flex: 1; max-width: 300px;">
-  <input type="text" id="sku-input" placeholder="Upiši SKU (npr. DCORE01)" style="max-width: 200px;">
-  <button onclick="addTitleBox()">Dodaj naslov</button>
-  <button onclick="addPinLegend()">Pins</button>
-
-  <div id="jumpers-ui" style="display: flex; gap: 5px; align-items: center;">
-    <button onclick="addJumperInput()">➕ Jumper</button>
-    <div id="jumper-inputs" style="display: flex; gap: 5px;"></div>
-    <button onclick="addJumperDetails()">Generiraj Jumpere</button>
+  <div class="toolbar-top-row">
+    <input type="file" id="svg-upload" accept=".svg">
+    <button onclick="rotateSVG()">Rotiraj +90°</button>
+    <button onclick="zoomIn()">Povećaj</button>
+    <button onclick="zoomOut()">Smanji</button>
+    <button onclick="downloadA4SVG()">Export Viewport SVG</button>
+    <button id="switch-layer">Layer: GRAPHICS</button>
+    <input type="text" id="title-input" placeholder="Upiši naziv (npr. DasDuino Core)" style="max-width: 250px;">
+    <input type="text" id="sku-input" placeholder="Unesi SKU (npr. 12345)" style="max-width: 150px;">
+    <button onclick="addTitleBox()">Dodaj naslov</button>
+    <button onclick="addPinLegend()">Pins</button>
   </div>
 
-
-
+  <div class="toolbar-jumper-row" id="jumper-inputs">
+    <!-- Inputi za jumpere će se dinamički dodavati ovdje -->
+    <button onclick="addJumperDetails()">Generiraj Jumpere</button>
+    <button onclick="addJumperInput()">+</button>
+  </div>
 </div>
+
 
 <div id="composer-area">
   <div class="paper-wrapper">
