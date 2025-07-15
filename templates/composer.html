@@ -120,6 +120,16 @@
     <button onclick="addJumperDetails()">Generiraj Jumpere</button>
     <button onclick="addJumperInput()">+</button>
   </div>
+
+  <div class="toolbar-jumper-row">
+    <!-- ... postojeći jumper inputi ... -->
+    <input type="text" id="info-text" placeholder="General info tekst" style="max-width: 250px;">
+    <button onclick="addGeneralInfo('R')">Dodaj Info R</button>
+    <button onclick="addGeneralInfo('L')">Dodaj Info L</button>
+  </div>
+
+
+
 </div>
 
 
@@ -335,7 +345,7 @@ function addTitleBox() {
 
 function addPinLegend() {
   const startX = 850; // x pozicija plave linije i kvadratića
-  const startY = 250; // gdje počinje prvi pin
+  const startY = 230; // gdje počinje prvi pin
   const boxSize = 16;
   const boxGap = 8;
   const textOffset = 10;
@@ -353,7 +363,8 @@ function addPinLegend() {
     { label: "I2C comms", color: "#A75383" },
     { label: "PWM comms", color: "#2E3175" },
     { label: "Other", color: "#295A32" },
-    { label: "Port name", color: "#ED008C" }
+    { label: "Port name", color: "#ED008C" },
+    { label: "General info", color: "#00C0DE" }
   ];
 
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -502,6 +513,134 @@ function addJumperDetails() {
     currentX += blockWidth + columnGap;
   });
 
+  graphicsLayer.appendChild(group);
+}
+
+
+function makeSVGElementDraggable(el) {
+  let offset = null;
+  let isDragging = false;
+
+  el.addEventListener("mousedown", e => {
+    isDragging = true;
+    const CTM = graphicsSVG.getScreenCTM();
+    offset = {
+      x: e.clientX - (CTM.a * el.transform.baseVal[0]?.matrix.e || 0),
+      y: e.clientY - (CTM.d * el.transform.baseVal[0]?.matrix.f || 0)
+    };
+    e.preventDefault();
+  });
+
+  window.addEventListener("mousemove", e => {
+    if (!isDragging) return;
+    const dx = e.clientX - offset.x;
+    const dy = e.clientY - offset.y;
+    const CTM = graphicsSVG.getScreenCTM();
+    const svgX = dx / CTM.a;
+    const svgY = dy / CTM.d;
+    el.setAttribute("transform", `translate(${svgX}, ${svgY})`);
+  });
+
+  window.addEventListener("mouseup", () => {
+    isDragging = false;
+  });
+}
+
+
+function addGeneralInfo(direction = "R") {
+  const infoText = document.getElementById("info-text").value.trim();
+  if (!infoText) return;
+
+  const maxLineWidth = 120;  // nova širina
+  const fontSize = 15;
+  const lineHeight = 20;
+  const padding = 6;
+  const iconSize = 16;
+  const gap = 6;
+
+  // Funkcija za prelamanje teksta u redove
+  function wrapText(text, maxWidth) {
+    const words = text.split(" ");
+    const lines = [];
+    let currentLine = "";
+
+    for (let word of words) {
+      const testLine = currentLine ? currentLine + " " + word : word;
+      const width = measureSVGTextWidth(testLine);
+      if (width <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+    return lines;
+  }
+
+  const lines = wrapText(infoText, maxLineWidth);
+  const textBlockWidth = maxLineWidth;
+  const totalTextHeight = lines.length * lineHeight;
+  const totalHeight = Math.max(iconSize, totalTextHeight);
+  const totalWidth = iconSize + gap + textBlockWidth;
+
+  // Odredi bazne točke
+  const cx = 150;
+  const cy = 300;
+  const groupX = cx - totalWidth / 2;
+  const groupY = cy - totalHeight / 2;
+
+  const iconX = direction === "L" ? groupX + textBlockWidth + gap : groupX;
+  const iconY = groupY + (totalHeight - iconSize) / 2;
+
+  const textX = direction === "L" ? groupX : groupX + iconSize + gap;
+
+  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  group.setAttribute("class", "draggable-info");
+  group.setAttribute("cursor", "move");
+
+  // Crtanje ikonice
+  const cut = 3;
+  const iconPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  iconPath.setAttribute("d", `
+    M${iconX + cut},${iconY}
+    H${iconX + iconSize - cut}
+    L${iconX + iconSize},${iconY + cut}
+    V${iconY + iconSize - cut}
+    L${iconX + iconSize - cut},${iconY + iconSize}
+    H${iconX + cut}
+    L${iconX},${iconY + iconSize - cut}
+    V${iconY + cut}
+    L${iconX + cut},${iconY}
+    Z
+  `);
+  iconPath.setAttribute("fill", "#00C0DE");
+
+  const iconText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  iconText.setAttribute("x", iconX + iconSize / 2);
+  iconText.setAttribute("y", iconY + iconSize / 2 + 1);
+  iconText.setAttribute("text-anchor", "middle");
+  iconText.setAttribute("dominant-baseline", "middle");
+  iconText.setAttribute("font-size", "12");
+  iconText.setAttribute("fill", "white");
+  iconText.setAttribute("font-family", "Source Code Pro, monospace");
+  iconText.textContent = "i";
+
+  // Dodaj tekstne redove
+  lines.forEach((line, i) => {
+    const textEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    textEl.setAttribute("x", textX);
+    textEl.setAttribute("y", groupY + i * lineHeight + fontSize);
+    textEl.setAttribute("fill", "#500B76");
+    textEl.setAttribute("font-size", fontSize);
+    textEl.setAttribute("font-family", "Source Code Pro, monospace");
+    textEl.textContent = line;
+    group.appendChild(textEl);
+  });
+
+  group.appendChild(iconPath);
+  group.appendChild(iconText);
+  makeSVGElementDraggable(group);
   graphicsLayer.appendChild(group);
 }
 
