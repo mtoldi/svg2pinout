@@ -80,8 +80,13 @@
   <input type="file" id="svg-upload" accept=".svg">
   <button onclick="rotateSVG()">Rotiraj +90°</button>
   <button onclick="centerSVG()">Centriraj</button>
-  <button onclick="exportAsPDF()">Export to PDF</button>
+
+  <button onclick="downloadCurrentViewportAsSVG()">Export Viewport SVG</button>
   <button id="switch-layer">Layer: GRAPHICS</button>
+
+  <input type="text" id="title-input" placeholder="Upiši naziv (npr. DasDuino Core)" style="flex: 1; max-width: 300px;">
+  <button onclick="addTitleBox()">Dodaj naslov</button>
+
 </div>
 
 <div id="composer-area">
@@ -169,66 +174,189 @@
     reader.readAsText(file);
   });
 
+function rotateSVG() {
+  const g = userLayer.querySelector("#main-content");
+  if (!g) return;
 
-  function centerSVG() {
-    const g = userLayer.querySelector("#main-content");
-    if (!g) return;
-    
-    const bbox = g.getBBox();
-    
-    const padding = 50; // ili više ako treba
-    
-    const x = bbox.x - padding;
-    const y = bbox.y - padding;
-    const width = bbox.width + padding * 2;
-    const height = bbox.height + padding * 2;
-    
-    userSVG.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
-    
-    if (panZoomInstance) {
-      panZoomInstance.resize();
-      panZoomInstance.fit();
-    }
+  currentRotation = (currentRotation + 90) % 360;
+
+  // Prvo primijeni rotaciju
+  const bboxBefore = g.getBBox(); // referenca prije da znamo centar
+  const cx = bboxBefore.x + bboxBefore.width / 2;
+  const cy = bboxBefore.y + bboxBefore.height / 2;
+
+  g.setAttribute("transform", `rotate(${currentRotation} ${cx} ${cy})`);
+
+  // ⚠️ Sačekaj jedan frame da browser izračuna novi bounding box
+  requestAnimationFrame(() => centerSVG());
+}
+
+function centerSVG() {
+  const g = userLayer.querySelector("#main-content");
+  if (!g) return;
+
+  const bbox = g.getBBox(); // dobiva dimenzije sadržaja
+
+  const padding = 50;
+
+  const svgWidth = userSVG.clientWidth;
+  const svgHeight = userSVG.clientHeight;
+  const svgAspect = svgWidth / svgHeight;
+
+  const contentWidth = bbox.width + padding * 2;
+  const contentHeight = bbox.height + padding * 2;
+  const contentAspect = contentWidth / contentHeight;
+
+  let viewBoxX = bbox.x - padding;
+  let viewBoxY = bbox.y - padding;
+  let viewBoxWidth = contentWidth;
+  let viewBoxHeight = contentHeight;
+
+  // Ako je sadržaj "širi" od prozora, proširi viewBox na visinu
+  if (contentAspect > svgAspect) {
+    const idealHeight = contentWidth / svgAspect;
+    const extra = idealHeight - contentHeight;
+    viewBoxY -= extra / 2;
+    viewBoxHeight = idealHeight;
+  } else {
+    // Inače proširi širinu
+    const idealWidth = contentHeight * svgAspect;
+    const extra = idealWidth - contentWidth;
+    viewBoxX -= extra / 2;
+    viewBoxWidth = idealWidth;
   }
 
+  userSVG.setAttribute("viewBox", `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`);
 
-  function rotateSVG() {
-    const g = userLayer.querySelector("#main-content");
-    if (!g) return;
-
-    currentRotation = (currentRotation + 90) % 360;
-
-    const bbox = g.getBBox();
-    const cx = bbox.x + bbox.width / 2;
-    const cy = bbox.y + bbox.height / 2;
-
-    g.setAttribute("transform", `rotate(${currentRotation} ${cx} ${cy})`);
-
-    centerSVG();
+  if (panZoomInstance) {
+    panZoomInstance.resize();
+    panZoomInstance.fit();
   }
+}
 
-  function exportAsPDF() {
-    const exportSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    exportSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    exportSVG.setAttribute("width", "1000");
-    exportSVG.setAttribute("height", "1000");
 
-    const graphicsClone = graphicsLayer.cloneNode(true);
-    const userClone = userLayer.cloneNode(true);
 
-    exportSVG.appendChild(graphicsClone);
-    exportSVG.appendChild(userClone);
 
-    const svgString = new XMLSerializer().serializeToString(exportSVG);
-    const blob = new Blob([svgString], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "composed.svg";
-    link.click();
-    URL.revokeObjectURL(url);
-  }
+function addTitleBox() {
+  const titleInput = document.getElementById("title-input");
+  const rawText = titleInput.value.trim();
+  if (!rawText) return;
+
+  const title = rawText.toUpperCase();
+  const fullText = `${title} - Pinout`;
+
+  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+  // Dimenzije pravokutnika
+  const x = 100;
+  const y = 100;
+  const width = 600;  // duplo duži
+  const height = 50;  // manja visina
+  const cut = 10;     // veličina odrezanog kuta
+
+  // Glavni pravokutnik s odrezanim DONJIM lijevim kutom
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", `
+    M${x},${y} 
+    H${x + width} 
+    V${y + height} 
+    H${x + cut} 
+    L${x},${y + height - cut} 
+    Z
+  `);
+  path.setAttribute("fill", "#500B76");
+
+  // Tekst centriran unutar pravokutnika
+  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text.setAttribute("x", x + width / 2);
+  text.setAttribute("y", y + height / 2);
+  text.setAttribute("text-anchor", "middle");
+  text.setAttribute("dominant-baseline", "middle");
+  text.setAttribute("fill", "white");
+  text.setAttribute("font-size", "20");
+  text.setAttribute("font-family", "Source Code Pro, monospace");
+
+  const boldPart = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+  boldPart.setAttribute("font-weight", "bold");
+  boldPart.textContent = title;
+
+  const suffixPart = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+  suffixPart.setAttribute("font-weight", "normal");
+  suffixPart.textContent = " - Pinout";
+
+  text.appendChild(boldPart);
+  text.appendChild(suffixPart);
+
+  group.appendChild(path);
+  group.appendChild(text);
+  graphicsLayer.appendChild(group);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function downloadCurrentViewportAsSVG() {
+  if (!panZoomInstance) return alert("SVG nije učitan!");
+
+  // Dohvati trenutni viewBox i dimenzije iz svg-pan-zoom
+  const sizes = panZoomInstance.getSizes();
+
+  // Dodaj 5% paddinga oko viewBox-a
+  const paddingFactor = 0.05;
+
+  let x = sizes.viewBox.x;
+  let y = sizes.viewBox.y;
+  let width = sizes.viewBox.width;
+  let height = sizes.viewBox.height;
+
+  const extraW = width * paddingFactor;
+  const extraH = height * paddingFactor;
+
+  x -= extraW / 2;
+  y -= extraH / 2;
+  width += extraW;
+  height += extraH;
+
+  const viewBox = `${x} ${y} ${width} ${height}`;
+
+  // Sastavi novi SVG s tim viewBoxom
+  const exportSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  exportSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  exportSVG.setAttribute("viewBox", viewBox);
+  exportSVG.setAttribute("width", sizes.width);
+  exportSVG.setAttribute("height", sizes.height);
+  exportSVG.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+  const graphicsClone = graphicsLayer.cloneNode(true);
+  const userClone = userLayer.cloneNode(true);
+
+  exportSVG.appendChild(graphicsClone);
+  exportSVG.appendChild(userClone);
+
+  const svgString = new XMLSerializer().serializeToString(exportSVG);
+  const blob = new Blob([svgString], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "viewport.svg";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+
 </script>
 
 </body>
