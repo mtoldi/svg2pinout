@@ -157,6 +157,7 @@
   <div id="navbar">
     <a href="/kicad">KiCad Layers</a>
     <a href="/editor-upload" class="active">SVG Pin Editor</a>
+    <a href="/composer">SVG to PDF</a>
   </div>
 
   <div id="main-content">
@@ -444,6 +445,10 @@ function rotatePoint([x, y], cx, cy, angleDeg) {
 
 function placeLabel(pinId, direction, labelIndex = 0) {
   if (pinId !== selectedPinId) return;
+
+  // ⛔ Obriši prethodne SVG elemente za isti pinId i labelIndex
+  [...overlay.querySelectorAll(`[data-pin="${pinId}"][data-label-index="${labelIndex}"]`)].forEach(el => el.remove());
+
   const pin = pinMap.get(pinId);
   let anchorX = pin.cx, anchorY = pin.cy;
 
@@ -480,8 +485,7 @@ function placeLabel(pinId, direction, labelIndex = 0) {
   let rotate = null;
   let polyPoints;
 
-  if (direction === 'E' || direction === 'W' || direction === 'NM' || direction === 'SM') {
-    // For NM and SM, simulate E or W then rotate
+  if (['E', 'W', 'NM', 'SM'].includes(direction)) {
     const isNM = direction === 'NM';
     const isSM = direction === 'SM';
     const isEast = direction === 'E' || isNM;
@@ -505,10 +509,11 @@ function placeLabel(pinId, direction, labelIndex = 0) {
       [baseX, baseY + bodyHeight / 2]
     ];
 
-    if (isNM) rotate = `rotate(-90 ${anchorX} ${anchorY})`;
-    if (isSM) rotate = `rotate(-90 ${anchorX} ${anchorY})`;
+    if (isNM || isSM) {
+      rotate = `rotate(-90 ${anchorX} ${anchorY})`;
+    }
   } else {
-    // N or S – simulate E or W then rotate 90
+    // N or S
     const baseDirection = direction === 'N' ? 'W' : 'E';
     const sign = baseDirection === 'E' ? 1 : -1;
 
@@ -545,7 +550,7 @@ function placeLabel(pinId, direction, labelIndex = 0) {
   let finalLineX = lineX;
   let finalLineY = lineY;
 
-  if (direction === 'N' || direction === 'S' || direction === 'NM' || direction === 'SM') {
+  if (['N', 'S', 'NM', 'SM'].includes(direction)) {
     if (direction === 'NM' || direction === 'SM') {
       [finalLineX, finalLineY] = rotatePoint([lineX, lineY], anchorX, anchorY, -90);
     } else {
@@ -557,12 +562,16 @@ function placeLabel(pinId, direction, labelIndex = 0) {
   line.setAttribute("y2", finalLineY);
   line.setAttribute("stroke", "black");
   line.setAttribute("stroke-width", "0.2");
+  line.setAttribute("data-pin", pinId);
+  line.setAttribute("data-label-index", labelIndex);
 
   const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
   polygon.setAttribute("points", polyPoints.map(p => p.join(",")).join(" "));
   polygon.setAttribute("fill", colorVal);
   polygon.setAttribute("stroke", "black");
   polygon.setAttribute("stroke-width", "0.08");
+  polygon.setAttribute("data-pin", pinId);
+  polygon.setAttribute("data-label-index", labelIndex);
 
   const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
   text.setAttribute("x", labelX);
@@ -571,6 +580,8 @@ function placeLabel(pinId, direction, labelIndex = 0) {
   text.setAttribute("fill", getTextColorForHex(colorVal));
   text.setAttribute("font-size", `${fontSize}px`);
   text.textContent = inputVal;
+  text.setAttribute("data-pin", pinId);
+  text.setAttribute("data-label-index", labelIndex);
 
   if (rotate) {
     polygon.setAttribute("transform", rotate);
@@ -584,7 +595,6 @@ function placeLabel(pinId, direction, labelIndex = 0) {
   if (!overlay.lastPlacedLabels) overlay.lastPlacedLabels = {};
   if (!overlay.lastPlacedLabels[pinId]) overlay.lastPlacedLabels[pinId] = [];
 
-  // Get endPoint for chaining
   let endPoint;
   if (direction === 'E') endPoint = polyPoints[2];
   else if (direction === 'W') endPoint = polyPoints[5];
@@ -598,7 +608,6 @@ function placeLabel(pinId, direction, labelIndex = 0) {
     endY: endPoint[1]
   };
 }
-
 
 function downloadSVG() {
   const svg = container.querySelector("svg");

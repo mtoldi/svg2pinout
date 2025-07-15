@@ -138,7 +138,7 @@ function rotateSVG() {
   const svg = area.querySelector("svg");
   if (!svg) return;
 
-  currentRotation = (currentRotation - 90) % 360;
+  currentRotation = (currentRotation + 90) % 360;
 
   let g = svg.querySelector("g#main-content");
   if (!g) {
