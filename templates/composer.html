@@ -98,6 +98,15 @@
   <input type="text" id="sku-input" placeholder="Upiši SKU (npr. DCORE01)" style="max-width: 200px;">
   <button onclick="addTitleBox()">Dodaj naslov</button>
   <button onclick="addPinLegend()">Pins</button>
+
+  <div id="jumpers-ui" style="display: flex; gap: 5px; align-items: center;">
+    <button onclick="addJumperInput()">➕ Jumper</button>
+    <div id="jumper-inputs" style="display: flex; gap: 5px;"></div>
+    <button onclick="addJumperDetails()">Generiraj Jumpere</button>
+  </div>
+
+
+
 </div>
 
 <div id="composer-area">
@@ -340,7 +349,7 @@ function addPinLegend() {
   line.setAttribute("x1", startX);
   line.setAttribute("y1", 100);
   line.setAttribute("x2", startX);
-  line.setAttribute("y2", A4_HEIGHT - 40);
+  line.setAttribute("y2", A4_HEIGHT);
   line.setAttribute("stroke", "#00C0DE");
   line.setAttribute("stroke-width", 2);
   group.appendChild(line);
@@ -379,6 +388,108 @@ function addPinLegend() {
 }
 
 
+function addJumperInput() {
+  const container = document.getElementById("jumper-inputs");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Opis jumppera";
+  input.style.maxWidth = "200px";
+  container.appendChild(input);
+}
+
+function measureSVGTextWidth(textContent) {
+  const tempText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  tempText.setAttribute("x", 0);
+  tempText.setAttribute("y", 0);
+  tempText.setAttribute("font-size", "15");
+  tempText.setAttribute("font-family", "Source Code Pro, monospace");
+  tempText.setAttribute("visibility", "hidden");
+  tempText.textContent = textContent;
+  graphicsSVG.appendChild(tempText);
+  const bbox = tempText.getBBox();
+  graphicsSVG.removeChild(tempText);
+  return bbox.width;
+}
+
+function addJumperDetails() {
+  const inputs = document.querySelectorAll("#jumper-inputs input");
+  const texts = Array.from(inputs)
+    .map(i => i.value.trim())
+    .filter(val => val !== "");
+
+  if (texts.length === 0) return;
+
+  const baseX = 30;
+  const baseY = 90;
+  const lineColor = "#00C0DE";
+  const textColor = "#500B76";
+  const blockHeight = 80;
+  const rowHeight = 20;
+  const columnGap = 0;
+  const padding = 20;
+  const minBlockWidth = 100;
+
+  // Podijeli tekstove u blokove po 3
+  const blocks = [];
+  for (let i = 0; i < texts.length; i += 3) {
+    blocks.push(texts.slice(i, i + 3));
+  }
+
+  // Izračunaj širine svih blokova unaprijed
+  const blockWidths = blocks.map(block => {
+    const longest = block.reduce((a, b) =>
+      measureSVGTextWidth(a) > measureSVGTextWidth(b) ? a : b, "");
+    return Math.max(minBlockWidth, measureSVGTextWidth(longest) + padding * 2);
+  });
+
+  // Nacrtaj blokove
+  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+  let currentX = baseX;
+
+  blocks.forEach((block, index) => {
+    const blockWidth = blockWidths[index];
+    const y = baseY;
+    const x = currentX;
+
+    // Gornja linija
+    const topLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    topLine.setAttribute("x1", x);
+    topLine.setAttribute("y1", y);
+    topLine.setAttribute("x2", x + blockWidth);
+    topLine.setAttribute("y2", y);
+    topLine.setAttribute("stroke", lineColor);
+    topLine.setAttribute("stroke-width", 2);
+    group.appendChild(topLine);
+
+    // Donja linija
+    const bottomLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    bottomLine.setAttribute("x1", x);
+    bottomLine.setAttribute("y1", y + blockHeight);
+    bottomLine.setAttribute("x2", x + blockWidth);
+    bottomLine.setAttribute("y2", y + blockHeight);
+    bottomLine.setAttribute("stroke", lineColor);
+    bottomLine.setAttribute("stroke-width", 2);
+    group.appendChild(bottomLine);
+
+    // Tekstovi unutar bloka
+    block.forEach((line, i) => {
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text.setAttribute("x", x + 10);
+      text.setAttribute("y", y + 20 + i * rowHeight);
+      text.setAttribute("fill", textColor);
+      text.setAttribute("font-size", "15");
+      text.setAttribute("font-family", "Source Code Pro, monospace");
+      text.textContent = line;
+      group.appendChild(text);
+    });
+
+    // Pripremi x za sljedeći blok
+    currentX += blockWidth + columnGap;
+  });
+
+  graphicsLayer.appendChild(group);
+}
 
 
 
