@@ -228,6 +228,8 @@ button:hover {
           <input type="text" id="info-text" placeholder="Info text (e.g. Use external 3.3V)">
           <button onclick="addGeneralInfo('R')">Add Info (Right)</button>
           <button onclick="addGeneralInfo('L')">Add Info (Left)</button>
+          <button onclick="addWarningInfo('R')">Add Warning (Right)</button>
+          <button onclick="addWarningInfo('L')">Add Warning (Left)</button>
         </div>
       </div>
     
@@ -873,32 +875,120 @@ function exportToPNG() {
 
 
 
+function addWarningInfo(direction = "R") {
+  const infoText = document.getElementById("info-text").value.trim();
+  if (!infoText) return;
 
-  function downloadA4SVG() {
-    const exportSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    exportSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    exportSVG.setAttribute("viewBox", `0 0 ${A4_WIDTH} ${A4_HEIGHT}`);
-    exportSVG.setAttribute("width", A4_WIDTH);
-    exportSVG.setAttribute("height", A4_HEIGHT);
-    exportSVG.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  const maxLineWidth = 120;
+  const fontSize = 15;
+  const lineHeight = 20;
+  const padding = 6;
+  const iconSize = 16;
+  const gap = 6;
 
-    const graphicsClone = graphicsLayer.cloneNode(true);
-    const userClone = userLayer.cloneNode(true);
+  function wrapText(text, maxWidth) {
+    const words = text.split(" ");
+    const lines = [];
+    let currentLine = "";
 
-    exportSVG.appendChild(graphicsClone);
-    exportSVG.appendChild(userClone);
-
-    const svgString = new XMLSerializer().serializeToString(exportSVG);
-    const blob = new Blob([svgString], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "a4_export.svg";
-    a.click();
-    URL.revokeObjectURL(url);
+    for (let word of words) {
+      const testLine = currentLine ? currentLine + " " + word : word;
+      const width = measureSVGTextWidth(testLine);
+      if (width <= maxWidth) {
+        currentLine = testLine;
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+    return lines;
   }
 
+  const lines = wrapText(infoText, maxLineWidth);
+  const textBlockWidth = maxLineWidth;
+  const totalTextHeight = lines.length * lineHeight;
+  const totalHeight = Math.max(iconSize, totalTextHeight);
+  const totalWidth = iconSize + gap + textBlockWidth;
+
+  const cx = 150;
+  const cy = 360; // separate vertical space from general info
+  const groupX = cx - totalWidth / 2;
+  const groupY = cy - totalHeight / 2;
+
+  const iconX = direction === "L" ? groupX + textBlockWidth + gap : groupX;
+  const iconY = groupY + (totalHeight - iconSize) / 2;
+  const textX = direction === "L" ? groupX : groupX + iconSize + gap;
+
+  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  group.setAttribute("class", "draggable-warning");
+  group.setAttribute("cursor", "move");
+
+  // Triangle icon
+  const triangle = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  triangle.setAttribute("d", `
+    M${iconX + iconSize / 2},${iconY}
+    L${iconX + iconSize},${iconY + iconSize}
+    L${iconX},${iconY + iconSize}
+    Z
+  `);
+  triangle.setAttribute("fill", "#FFD700"); // bright yellow
+  group.appendChild(triangle);
+
+  // Exclamation mark
+  const exclamation = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  exclamation.setAttribute("x", iconX + iconSize / 2);
+  exclamation.setAttribute("y", iconY + iconSize * 0.75);
+  exclamation.setAttribute("text-anchor", "middle");
+  exclamation.setAttribute("dominant-baseline", "middle");
+  exclamation.setAttribute("font-size", "14");
+  exclamation.setAttribute("fill", "black");
+  exclamation.setAttribute("font-family", "Source Code Pro, monospace");
+  exclamation.textContent = "!";
+
+  // Text block
+  lines.forEach((line, i) => {
+    const textEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    textEl.setAttribute("x", direction === "L" ? textX + maxLineWidth : textX);
+    textEl.setAttribute("y", groupY + i * lineHeight + fontSize);
+    textEl.setAttribute("fill", "#500B76");
+    textEl.setAttribute("font-size", fontSize);
+    textEl.setAttribute("font-family", "Source Code Pro, monospace");
+    textEl.setAttribute("text-anchor", direction === "L" ? "end" : "start");
+    textEl.textContent = line;
+    group.appendChild(textEl);
+  });
+
+  group.appendChild(triangle);
+  group.appendChild(exclamation);
+  makeSVGElementDraggable(group);
+  graphicsLayer.appendChild(group);
+}
+
+
+
+
+
+function downloadA4SVG() {
+  const exportSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  exportSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  exportSVG.setAttribute("viewBox", `0 0 ${A4_WIDTH} ${A4_HEIGHT}`);
+  exportSVG.setAttribute("width", A4_WIDTH);
+  exportSVG.setAttribute("height", A4_HEIGHT);
+  exportSVG.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  const graphicsClone = graphicsLayer.cloneNode(true);
+  const userClone = userLayer.cloneNode(true);
+  exportSVG.appendChild(graphicsClone);
+  exportSVG.appendChild(userClone);
+  const svgString = new XMLSerializer().serializeToString(exportSVG);
+  const blob = new Blob([svgString], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "a4_export.svg";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 let deleteMode = false;
 
