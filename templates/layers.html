@@ -1,71 +1,139 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Layer Editor</title>
+  <title>Layer Stack Composer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 
+  <style>
+    body {
+      font-family: 'Source Code Pro', monospace;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: #F9F8FB;
+      color: #2E2E2E;
+      overflow: hidden;
+    }
 
+    #navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: #2E2E2E;
+      color: #D6CFE1;
+      padding: 10px 20px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      z-index: 10;
+    }
 
+    #navbar a {
+      color: #D6CFE1;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
 
+    #navbar a.active {
+      background-color: #9E4A4F;
+      padding: 6px 12px;
+      border-radius: 5px;
+    }
 
-<style>
-body {
-  font-family: 'Source Code Pro', monospace;
-  margin: 0;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #F9F8FB;
-  color: #2E2E2E;
-  overflow: hidden;
-}
+    #main-content {
+      display: flex;
+      flex: 1;
+      margin-top: 60px;
+      height: calc(100vh - 60px);
+    }
 
-#navbar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: #2E2E2E;
-  color: #D6CFE1;
-  padding: 10px 20px;
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  z-index: 10;
-}
+    #layer-controls {
+      width: 350px;
+      padding: 20px;
+      background-color: #F3F1F8;
+      overflow-y: auto;
+      border-right: 1px solid #D6CFE1;
+    }
 
-#navbar a {
-  color: #D6CFE1;
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 0.95rem;
-}
+    #layer-controls h2 {
+      margin-top: 0;
+    }
 
-#navbar a.active {
-  background-color: #9E4A4F;
-  padding: 6px 12px;
-  border-radius: 5px;
-}
+    .layer-item {
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #D6CFE1;
+      background: #f9f9f9;
+      border-radius: 6px;
+      cursor: move;
+    }
 
+    #controls {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
-#layer-controls { width: 300px; }
-.layer-item { margin-bottom: 10px; padding: 5px; border: 1px solid #ccc; background: #f9f9f9; cursor: move; }
-#svg-viewer { flex-grow: 1; border: 1px solid #000; height: 90vh; overflow: hidden; position: relative; }
-#controls { margin-top: 1rem; }
+    input[type="text"], input[type="file"], input[type="color"] {
+      font-family: 'Source Code Pro', monospace;
+      background-color: #D6CFE1;
+      border: 1px solid #2E2E2E;
+      color: #2E2E2E;
+      padding: 6px 10px;
+      border-radius: 4px;
+      transition: background-color 0.2s, border-color 0.2s;
+      max-width: 100%;
+      flex: 1;
+    }
 
+    input[type="text"]:focus,
+    input[type="file"]:focus,
+    input[type="color"]:focus {
+      outline: none;
+      border-color: #9E4A4F;
+      background-color: #ECE6F3;
+    }
 
+    button {
+      font-family: 'Source Code Pro', monospace;
+      background-color: #D6CFE1;
+      border: 1px solid #2E2E2E;
+      color: #2E2E2E;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
 
-</style>
+    button:hover {
+      background-color: #C9C1D8;
+      border-color: #9E4A4F;
+    }
 
+    #svg-viewer {
+      flex-grow: 1;
+      border-left: 1px solid #D6CFE1;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+      background: #EEE;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-
-
-
-
-
-
+    #combined-svg {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
 </head>
 <body>
 
@@ -75,40 +143,40 @@ body {
   <a href="/composer">SVG to PDF</a>
 </div>
 
-<div id="layer-controls">
-  <h2>Slojevi</h2>
-  <div id="layer-list">
-    {% for svg in svg_files %}
-    {% set color = "#000000" %}
-    {% if "F_Silkscreen" in svg or "Edge_Cuts" in svg %}
-      {% set color = "#5B2379" %}
-    {% elif "User_Drawings" in svg or "F_Mask" in svg %}
-      {% set color = "#cccccc" %}
-    {% endif %}
-    <div class="layer-item" data-file="{{ svg }}">
-      <label>{{ svg }}</label><br>
-      Boja: <input type="color" value="{{ color }}" class="color-picker"><br>
+<div id="main-content">
+  <div id="layer-controls">
+    <h2>Layers</h2>
+    <div id="layer-list">
+      {% for svg in svg_files %}
+      {% set color = "#000000" %}
+      {% if "F_Silkscreen" in svg or "Edge_Cuts" in svg %}
+        {% set color = "#5B2379" %}
+      {% elif "User_Drawings" in svg or "F_Mask" in svg %}
+        {% set color = "#cccccc" %}
+      {% endif %}
+      <div class="layer-item" data-file="{{ svg }}">
+        <label>{{ svg }}</label><br>
+        Color: <input type="color" value="{{ color }}" class="color-picker"><br>
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
+    <div id="controls">
+      <button onclick="updateStack()">Render Stack</button>
+      <label for="sku-input">SKU:</label>
+      <input type="text" id="sku-input" placeholder="e.g. 333037"><br>
+      <button onclick="downloadSVG()">Download SVG</button>
+    </div>
   </div>
-  <div id="controls">
-    <button onclick="updateStack()">Prikaži složeni prikaz</button>
-    <button onclick="rotateView()">Rotiraj +90°</button>
-    <label for="sku-input">SKU:</label>
-    <input type="text" id="sku-input" placeholder="npr. 333037" style="width: 100%; margin-bottom: 10px;"><br>
-    <button onclick="downloadSVG()">Preuzmi SVG</button>
-  </div>
-</div>
 
-<div id="svg-viewer">
-  <svg id="combined-svg" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-    <g id="main-content"></g>
-  </svg>
+  <div id="svg-viewer">
+    <svg id="combined-svg" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <g id="svg-layers"></g>
+
+    </svg>
+  </div>
 </div>
 
 <script>
-  let currentRotation = 0;
-  let viewBoxCenter = { x: 0, y: 0 };
   let panZoomInstance = null;
 
   Sortable.create(document.getElementById('layer-list'), {
@@ -122,8 +190,7 @@ body {
     const isSilkscreen = layerName.includes("F_Silkscreen");
 
     const strokeWidth = isEdgeCuts ? "0.2" :
-                        isSilkscreen ? "0.05" :
-                        null;
+                        isSilkscreen ? "0.05" : null;
 
     const style = element.getAttribute("style");
     if (style) {
@@ -155,10 +222,9 @@ body {
 
   async function updateStack() {
     const viewer = document.getElementById('combined-svg');
-    const group = document.getElementById('main-content');
+    const group = document.getElementById('svg-layers');
+
     group.innerHTML = '';
-    currentRotation = 0;
-    group.setAttribute("transform", "rotate(0)");
 
     const items = document.querySelectorAll('.layer-item');
     for (const item of items) {
@@ -178,17 +244,13 @@ body {
         const viewBox = innerSvg.getAttribute("viewBox");
         if (viewBox) {
           viewer.setAttribute("viewBox", viewBox);
-          const [x, y, width, height] = viewBox.split(" ").map(parseFloat);
-          viewBoxCenter.x = x + width / 2;
-          viewBoxCenter.y = y + height / 2;
         }
       }
 
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
       for (const child of innerSvg.children) {
         const cloned = child.cloneNode(true);
-        const layerName = file;
-        applyColorRecursive(cloned, color, layerName);
+        applyColorRecursive(cloned, color, file);
         g.appendChild(cloned);
       }
 
@@ -206,15 +268,6 @@ body {
       center: true
     });
 
-    setTimeout(() => {
-      panZoomInstance.zoomBy(3.0);
-    }, 0);
-  }
-
-  function rotateView() {
-    currentRotation = (currentRotation + 90) % 360;
-    const transform = `rotate(${currentRotation}, ${viewBoxCenter.x}, ${viewBoxCenter.y})`;
-    document.getElementById('main-content').setAttribute("transform", transform);
     setTimeout(() => {
       panZoomInstance.zoomBy(3.0);
     }, 0);
