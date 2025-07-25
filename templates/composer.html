@@ -4,94 +4,120 @@
   <title>SVG Composer – A4 Layout</title>
   <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
-  <style>
-    body {
-      font-family: 'Source Code Pro', monospace;
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
 
-    #navbar {
-      background: #333;
-      color: white;
-      padding: 10px 20px;
-      display: flex;
-      gap: 20px;
-      align-items: center;
-    }
+<style>
+body {
+  font-family: 'Source Code Pro', monospace;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #F9F8FB; /* Off-white */
+  color: #2E2E2E;
+}
 
-    #navbar a {
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
-      font-size: 0.95rem;
-    }
+#navbar {
+  background: #2E2E2E; /* Graphite */
+  color: #D6CFE1;
+  padding: 10px 20px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
 
-    #navbar a.active {
-      background-color: #555;
-      padding: 6px 12px;
-      border-radius: 5px;
-    }
+#navbar a {
+  color: #D6CFE1;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
 
-    #composer-toolbar {
-      background: #f4f4f4;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      border-bottom: 1px solid #ccc;
-    }
+#navbar a.active {
+  background-color: #9E4A4F; /* Dusty rose */
+  padding: 6px 12px;
+  border-radius: 5px;
+}
 
-    .toolbar-top-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
+#composer-toolbar {
+  background: #F3F1F8; /* Snow violet */
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid #D6CFE1;
+}
 
-    .toolbar-jumper-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-      width: 100%;
-    }
+.toolbar-top-row,
+.toolbar-jumper-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
 
-    #composer-area {
-      flex: 1;
-      background: #eee;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
+#composer-area {
+  flex: 1;
+  background: #eee; /* Neutral for canvas */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
 
-    .paper-wrapper {
-      width: 1122px;
-      height: 794px;
-      box-shadow: 0 0 0 2px #999;
-      background: white;
-      position: relative;
-    }
+.paper-wrapper {
+  width: 1122px;
+  height: 794px;
+  box-shadow: 0 0 0 2px #999;
+  background: white;
+  position: relative;
+}
 
-    .paper-wrapper svg {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 1122px;
-      height: 794px;
-    }
+.paper-wrapper svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1122px;
+  height: 794px;
+}
 
-    #graphics-svg {
-      pointer-events: auto;
-    }
+#graphics-svg {
+  pointer-events: auto;
+}
 
-    #user-svg {
-      pointer-events: none;
-    }
-  </style>
+#user-svg {
+  pointer-events: none;
+}
+
+/* Inputs & Buttons */
+button, input[type="text"], input[type="file"] {
+  font-family: 'Source Code Pro', monospace;
+  background-color: #D6CFE1; /* Lavender Fog */
+  border: 1px solid #2E2E2E; /* Graphite */
+  color: #2E2E2E;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+button:hover {
+  background-color: #C9C1D8; /* Slightly deeper lavender */
+  border-color: #9E4A4F; /* Dusty rose */
+  cursor: pointer;
+}
+
+input[type="text"]:focus,
+input[type="file"]:focus {
+  outline: none;
+  border-color: #9E4A4F;
+  background-color: #F3F1F8;
+}
+
+
+
+</style>
+
+
+
 </head>
 <body>
 
