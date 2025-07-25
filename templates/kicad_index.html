@@ -2,54 +2,111 @@
 <html>
 <head>
   <title>KiCad SVG Export</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
 
+  <style>
+    body {
+      font-family: 'Source Code Pro', monospace;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: #F9F8FB;
+      color: #2E2E2E;
+      overflow: hidden;
+    }
 
-<style>
+    #navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: #2E2E2E;
+      color: #D6CFE1;
+      padding: 10px 20px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      z-index: 10;
+    }
 
-body {
-  font-family: 'Source Code Pro', monospace;
-  margin: 0;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #F9F8FB;
-  color: #2E2E2E;
-  overflow: hidden;
-}
+    #navbar a {
+      color: #D6CFE1;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
 
-#navbar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: #2E2E2E;
-  color: #D6CFE1;
-  padding: 10px 20px;
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  z-index: 10;
-}
+    #navbar a.active {
+      background-color: #9E4A4F;
+      padding: 6px 12px;
+      border-radius: 5px;
+    }
 
-#navbar a {
-  color: #D6CFE1;
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 0.95rem;
-}
+    main {
+      margin-top: 60px;
+      padding: 40px;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-#navbar a.active {
-  background-color: #9E4A4F;
-  padding: 6px 12px;
-  border-radius: 5px;
-}
+    .upload-box {
+      border: 2px dashed #9E4A4F;
+      background-color: #F3F1F8;
+      padding: 40px;
+      border-radius: 10px;
+      width: 400px;
+      text-align: center;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
 
-</style>
+    .upload-box.dragover {
+      background-color: #ECE6F3;
+      border-color: #2E2E2E;
+    }
 
+    input[type="file"] {
+      display: none;
+    }
 
+    label.file-label {
+      display: inline-block;
+      padding: 10px 16px;
+      margin-top: 10px;
+      background-color: #D6CFE1;
+      border: 1px solid #2E2E2E;
+      color: #2E2E2E;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    label.file-label:hover {
+      background-color: #C9C1D8;
+      border-color: #9E4A4F;
+    }
+
+    button {
+      font-family: 'Source Code Pro', monospace;
+      background-color: #D6CFE1;
+      border: 1px solid #2E2E2E;
+      color: #2E2E2E;
+      padding: 10px 16px;
+      margin-top: 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #C9C1D8;
+      border-color: #9E4A4F;
+    }
+  </style>
 </head>
-
 
 <body>
   <div id="navbar">
@@ -58,10 +115,54 @@ body {
     <a href="/composer">SVG to PDF</a>
   </div>
 
-  <h1>Upload KiCad PCB file</h1>
-  <form method="POST" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".kicad_pcb" required>
-    <button type="submit">Generate SVGs</button>
-  </form>
+  <main>
+    <form method="POST" enctype="multipart/form-data" id="upload-form">
+      <div class="upload-box" id="drop-zone">
+        <h2>Upload KiCad PCB</h2>
+        <p>Drag & drop your <code>.kicad_pcb</code> file here<br>or use the file picker below.</p>
+        <label class="file-label">
+          Choose File
+          <input type="file" name="file" accept=".kicad_pcb" required id="file-input">
+        </label>
+        <div id="file-name" style="margin-top: 10px; font-size: 0.9rem;"></div>
+        <button type="submit">Generate SVGs</button>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const fileNameDisplay = document.getElementById('file-name');
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.kicad_pcb')) {
+        fileInput.files = e.dataTransfer.files;
+        fileNameDisplay.textContent = file.name;
+      } else {
+        alert('Please upload a valid .kicad_pcb file.');
+      }
+    });
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) {
+        fileNameDisplay.textContent = file.name;
+      }
+    });
+  </script>
 </body>
 </html>

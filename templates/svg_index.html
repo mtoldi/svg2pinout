@@ -1,20 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>SVG Upload</title>
+  <title>SVG Pin Editor – Upload</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
+
   <style>
     body {
       font-family: 'Source Code Pro', monospace;
       margin: 0;
-      color: #222;
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      background-color: #F9F8FB;
+      color: #2E2E2E;
       overflow: hidden;
     }
 
     #navbar {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
       right: 0;
@@ -42,33 +45,74 @@
     }
 
     main {
+      margin-top: 60px;
+      padding: 40px;
       flex: 1;
-      padding: 2rem;
-      padding-top: 70px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
-    form {
-      margin-top: 1rem;
+    .upload-box {
+      border: 2px dashed #9E4A4F;
+      background-color: #F3F1F8;
+      padding: 40px;
+      border-radius: 10px;
+      width: 400px;
+      text-align: center;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+
+    .upload-box.dragover {
+      background-color: #ECE6F3;
+      border-color: #2E2E2E;
     }
 
     input[type="file"] {
-      margin-right: 1rem;
+      display: none;
+    }
+
+    label.file-label {
+      display: inline-block;
+      padding: 10px 16px;
+      margin-top: 10px;
+      background-color: #D6CFE1;
+      border: 1px solid #2E2E2E;
+      color: #2E2E2E;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    label.file-label:hover {
+      background-color: #C9C1D8;
+      border-color: #9E4A4F;
     }
 
     button {
-      padding: 0.4rem 0.8rem;
-      font-size: 1rem;
-      background-color: #f0f0f0;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      font-family: 'Source Code Pro', monospace;
+      background-color: #D6CFE1;
+      border: 1px solid #2E2E2E;
+      color: #2E2E2E;
+      padding: 10px 16px;
+      margin-top: 20px;
+      border-radius: 4px;
       cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
     }
 
     button:hover {
-      background-color: #e0e0e0;
+      background-color: #C9C1D8;
+      border-color: #9E4A4F;
+    }
+
+    #file-name {
+      margin-top: 10px;
+      font-size: 0.9rem;
     }
   </style>
 </head>
+
 <body>
 
   <div id="navbar">
@@ -78,12 +122,54 @@
   </div>
 
   <main>
-    <h2>Upload SKU SVG</h2>
-    <form method="POST" enctype="multipart/form-data">
-      <input type="file" name="file" accept=".svg" required>
-      <button type="submit">Upload</button>
+    <form method="POST" enctype="multipart/form-data" id="upload-form">
+      <div class="upload-box" id="drop-zone">
+        <h2>Upload SKU SVG</h2>
+        <p>Drag & drop your <code>.svg</code> file here<br>or use the file picker below.</p>
+        <label class="file-label">
+          Choose File
+          <input type="file" name="file" accept=".svg" required id="file-input">
+        </label>
+        <div id="file-name"></div>
+        <button type="submit">Upload</button>
+      </div>
     </form>
   </main>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const fileNameDisplay = document.getElementById('file-name');
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.svg')) {
+        fileInput.files = e.dataTransfer.files;
+        fileNameDisplay.textContent = file.name;
+      } else {
+        alert('Please upload a valid .svg file.');
+      }
+    });
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) {
+        fileNameDisplay.textContent = file.name;
+      }
+    });
+  </script>
 
 </body>
 </html>
