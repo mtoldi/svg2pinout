@@ -206,6 +206,7 @@ button:hover {
         <strong>Pinout Legend</strong>
         <div class="toolbar-row">
           <button onclick="addPinLegend()">Add Legend</button>
+          <button onclick="addSolderedLogo()">Add Soldered Logo</button>
         </div>
       </div>
     
@@ -537,6 +538,73 @@ function removeJumperInput() {
     container.removeChild(inputs[inputs.length - 1]);
   }
 }
+
+function addSolderedLogo() {
+  const svgNS = "http://www.w3.org/2000/svg";
+  const group = document.createElementNS(svgNS, "g");
+  group.setAttribute("transform", "translate(30, 620) scale(0.45)");
+
+  // Triangle extending the rectangle visually (roof-like)
+  const triangle = document.createElementNS(svgNS, "path");
+  triangle.setAttribute("d", "M0 20 L120 -45 L240 20 Z");
+  triangle.setAttribute("fill", "#500B76");
+  group.appendChild(triangle);
+
+  // Purple rectangle body
+  const bg = document.createElementNS(svgNS, "rect");
+  bg.setAttribute("x", "0");
+  bg.setAttribute("y", "20");
+  bg.setAttribute("width", "240");
+  bg.setAttribute("height", "650");
+  bg.setAttribute("fill", "#500B76");
+  group.appendChild(bg);
+
+  // Top S path (shifted right by 34px)
+  const pathTop = document.createElementNS(svgNS, "path");
+  pathTop.setAttribute("d", "M183.944 33.9609C179.575 33.9609 175.205 32.7691 171.63 30.7827L119.5943 0.589111L41.73877 45.8794V121.363L123.5665 168.64L125.5527 167.448C132.7027 163.873 137.867 155.927 137.867 147.981C137.867 140.036 133.1 130.898 125.9499 127.323L76.6943 100.705V65.3463L119.5943 40.3175L155.344 61.3735C158.919 63.3599 161.303 66.1409 163.686 69.7164C167.658 76.8675 175.205 81.2377 183.944 81.2377C191.889 81.2377 198.642 77.2648 203.011 71.3056C203.408 70.9083 203.805 70.1137 204.203 69.7164C204.203 69.7164 204.203 69.7165 204.203 69.3192C206.189 65.7436 207.38 61.7708 207.38 57.4007C207.38 44.6876 197.053 33.9609 183.944 33.9609Z");
+  pathTop.setAttribute("fill", "white");
+
+  // Bottom S path (shifted right by 34px)
+  const pathBottom = document.createElementNS(svgNS, "path");
+  pathBottom.setAttribute("d", "M116.4166 63.7572C109.2666 67.3328 104.1028 75.2784 104.1028 83.2241C104.1028 91.1698 108.8694 100.307 116.0194 103.883L165.275 130.501V165.859L122.375 190.888L86.625 169.832C83.05 167.845 80.6666 165.065 78.2833 161.489C74.3111 154.338 66.7639 149.968 58.025 149.968C50.0805 149.968 43.3278 153.941 38.95831 159.9C38.56109 160.297 38.16387 161.092 37.76665 161.489C37.76665 161.489 37.76665 161.489 37.76665 161.886C35.78053 165.462 34.588867 169.435 34.588867 173.805C34.588867 186.915 45.3139 197.642 58.4222 197.642C62.7916 197.642 66.7639 198.834 70.7361 200.82L122.7722 230.616L200.231 185.723V110.239L118.4028 62.9626L116.4166 63.7572Z");
+  pathBottom.setAttribute("fill", "white");
+
+  const textMain = document.createElementNS(svgNS, "text");
+  textMain.textContent = "SOLDERED";
+  textMain.setAttribute("x", "85");
+  textMain.setAttribute("y", "750");
+  textMain.setAttribute("fill", "white");
+  textMain.setAttribute("font-size", "14");
+  textMain.setAttribute("font-family", "Source Code Pro, monospace");
+  textMain.setAttribute("text-anchor", "middle");
+
+  const textSub = document.createElementNS(svgNS, "text");
+  textSub.textContent = "soldered.com";
+  textSub.setAttribute("x", "85");
+  textSub.setAttribute("y", "775");
+  textSub.setAttribute("fill", "white");
+  textSub.setAttribute("font-size", "12");
+  textSub.setAttribute("font-family", "Source Code Pro, monospace");
+  textSub.setAttribute("text-anchor", "middle");
+
+
+
+
+  // Append these after all paths
+  group.appendChild(pathTop);
+  group.appendChild(pathBottom);
+
+
+  graphicsLayer.appendChild(group);
+  graphicsLayer.appendChild(textMain);
+  graphicsLayer.appendChild(textSub);
+}
+
+
+
+
+
+
 
 
 function measureSVGTextWidth(textContent) {
