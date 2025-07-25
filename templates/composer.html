@@ -223,7 +223,7 @@ button:hover {
     
       <!-- Additional Info -->
       <div class="toolbar-section">
-        <strong>General Info Box</strong>
+        <strong>Info & Warning Boxes</strong>
         <div class="toolbar-row">
           <input type="text" id="info-text" placeholder="Info text (e.g. Use external 3.3V)">
           <button onclick="addGeneralInfo('R')">Add Info (Right)</button>
@@ -455,8 +455,8 @@ function addTitleBox() {
 }
 
 function addPinLegend() {
-  const startX = 850; // x pozicija plave linije i kvadratića
-  const startY = 230; // gdje počinje prvi pin
+  const startX = 850;
+  const startY = 230;
   const boxSize = 16;
   const boxGap = 8;
   const textOffset = 10;
@@ -475,12 +475,12 @@ function addPinLegend() {
     { label: "PWM comms", color: "#2E3175" },
     { label: "Other", color: "#295A32" },
     { label: "Port name", color: "#ED008C" },
-    { label: "General info", color: "#00C0DE" }
+    { label: "General info", color: "#00C0DE" },
+    { label: "Warning!", color: "#FFD700" }
   ];
 
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
-  // Crtanje vertikalne plave crte
   const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.setAttribute("x1", startX);
   line.setAttribute("y1", 100);
@@ -490,28 +490,71 @@ function addPinLegend() {
   line.setAttribute("stroke-width", 2);
   group.appendChild(line);
 
-  // Dodavanje svakog pin opisa
   data.forEach((item, index) => {
     const y = startY + index * (boxSize + boxGap);
+    const iconX = startX + 10;
+    const iconY = y;
 
-    // Odrezani kvadrat (donji lijevi kut)
-    const cut = 3;
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", `
-      M${startX + 10},${y}
-      H${startX + 10 + boxSize}
-      V${y + boxSize}
-      H${startX + 10 + cut}
-      L${startX + 10},${y + boxSize - cut}
-      Z
-    `);
-    path.setAttribute("fill", item.color);
-    group.appendChild(path);
+    if (item.label === "General info") {
+      // Draw blue info icon
+      const infoGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
-    // Tekst
+      const infoBox = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      infoBox.setAttribute("d", `M${iconX + 3},${iconY} H${iconX + 13} L${iconX + 16},${iconY + 3} V${iconY + 13} L${iconX + 13},${iconY + 16} H${iconX + 3} L${iconX},${iconY + 13} V${iconY + 3} Z`);
+      infoBox.setAttribute("fill", "#00C0DE");
+      infoGroup.appendChild(infoBox);
+
+      const iText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      iText.setAttribute("x", iconX + 8);
+      iText.setAttribute("y", iconY + 11);
+      iText.setAttribute("text-anchor", "middle");
+      iText.setAttribute("font-size", "10");
+      iText.setAttribute("font-family", "Source Code Pro, monospace");
+      iText.setAttribute("fill", "white");
+      iText.textContent = "i";
+      infoGroup.appendChild(iText);
+
+      group.appendChild(infoGroup);
+    } else if (item.label === "Warning!") {
+      // Draw yellow warning triangle
+      const warningGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+      const triangle = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      triangle.setAttribute("d", `M${iconX + 8},${iconY} L${iconX + 16},${iconY + 16} H${iconX} Z`);
+      triangle.setAttribute("fill", "#FFD700");
+      warningGroup.appendChild(triangle);
+
+      const exclamation = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      exclamation.setAttribute("x", iconX + 8);
+      exclamation.setAttribute("y", iconY + 14);
+      exclamation.setAttribute("text-anchor", "middle");
+      exclamation.setAttribute("font-size", "12");
+      exclamation.setAttribute("font-family", "Source Code Pro, monospace");
+      exclamation.setAttribute("fill", "black");
+      exclamation.textContent = "!";
+      warningGroup.appendChild(exclamation);
+
+      group.appendChild(warningGroup);
+    } else {
+      // Default clipped square for other items
+      const cut = 3;
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", `
+        M${iconX},${iconY}
+        H${iconX + boxSize}
+        V${iconY + boxSize}
+        H${iconX + cut}
+        L${iconX},${iconY + boxSize - cut}
+        Z
+      `);
+      path.setAttribute("fill", item.color);
+      group.appendChild(path);
+    }
+
+    // Add label text
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text.setAttribute("x", startX + 10 + boxSize + textOffset);
-    text.setAttribute("y", y + boxSize / 2);
+    text.setAttribute("x", iconX + boxSize + textOffset);
+    text.setAttribute("y", iconY + boxSize / 2);
     text.setAttribute("dominant-baseline", "middle");
     text.setAttribute("fill", "#500B76");
     text.setAttribute("font-size", "15");
@@ -522,6 +565,7 @@ function addPinLegend() {
 
   graphicsLayer.appendChild(group);
 }
+
 
 
 function addJumperInput() {
