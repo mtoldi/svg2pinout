@@ -6,23 +6,31 @@
   <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 
 <style>
+
 body {
   font-family: 'Source Code Pro', monospace;
   margin: 0;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #F9F8FB; /* Off-white */
+  background-color: #F9F8FB;
   color: #2E2E2E;
+  overflow: hidden;
 }
 
 #navbar {
-  background: #2E2E2E; /* Graphite */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: #2E2E2E;
   color: #D6CFE1;
   padding: 10px 20px;
   display: flex;
   gap: 20px;
   align-items: center;
+  z-index: 10;
 }
 
 #navbar a {
@@ -33,35 +41,96 @@ body {
 }
 
 #navbar a.active {
-  background-color: #9E4A4F; /* Dusty rose */
+  background-color: #9E4A4F;
   padding: 6px 12px;
   border-radius: 5px;
 }
 
-#composer-toolbar {
-  background: #F3F1F8; /* Snow violet */
-  padding: 10px;
+#main-content {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border-bottom: 1px solid #D6CFE1;
+  flex-direction: row;
+  height: calc(100vh - 60px); /* below navbar */
+  margin-top: 60px;
 }
 
-.toolbar-top-row,
-.toolbar-jumper-row {
+#composer-toolbar {
+  width: 400px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #F3F1F8;
+  padding: 15px 12px;
+  display: block; /* key change */
+  scroll-behavior: smooth;
+  padding-bottom: 100px;
+}
+
+
+
+.toolbar-section {
+  background: #F3F1F8;
+  border: 1px solid #D6CFE1;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.toolbar-section strong {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+  color: #2E2E2E;
+}
+
+.toolbar-row {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
 }
 
+input[type="text"], input[type="file"] {
+  font-family: 'Source Code Pro', monospace;
+  background-color: #D6CFE1;
+  border: 1px solid #2E2E2E;
+  color: #2E2E2E;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s, border-color 0.2s;
+  max-width: 100%;
+  flex: 1;
+}
+
+input[type="text"]:focus,
+input[type="file"]:focus {
+  outline: none;
+  border-color: #9E4A4F;
+  background-color: #ECE6F3;
+}
+
+button {
+  font-family: 'Source Code Pro', monospace;
+  background-color: #D6CFE1;
+  border: 1px solid #2E2E2E;
+  color: #2E2E2E;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+button:hover {
+  background-color: #C9C1D8;
+  border-color: #9E4A4F;
+}
+
 #composer-area {
   flex: 1;
-  background: #eee; /* Neutral for canvas */
   display: flex;
   justify-content: center;
   align-items: center;
+  background: #EEE;
   position: relative;
+  overflow: hidden;
 }
 
 .paper-wrapper {
@@ -87,91 +156,100 @@ body {
 #user-svg {
   pointer-events: none;
 }
-
-/* Inputs & Buttons */
-button, input[type="text"], input[type="file"] {
-  font-family: 'Source Code Pro', monospace;
-  background-color: #D6CFE1; /* Lavender Fog */
-  border: 1px solid #2E2E2E; /* Graphite */
-  color: #2E2E2E;
-  padding: 6px 12px;
-  border-radius: 4px;
-  transition: background-color 0.2s, border-color 0.2s;
-}
-
-button:hover {
-  background-color: #C9C1D8; /* Slightly deeper lavender */
-  border-color: #9E4A4F; /* Dusty rose */
-  cursor: pointer;
-}
-
-input[type="text"]:focus,
-input[type="file"]:focus {
-  outline: none;
-  border-color: #9E4A4F;
-  background-color: #F3F1F8;
-}
-
-
-
 </style>
 
 
-
 </head>
+
 <body>
-
-<div id="navbar">
-  <a href="/kicad">KiCad Layers</a>
-  <a href="/editor-upload">SVG Pin Editor</a>
-  <a href="/composer" class="active">SVG to PDF</a>
-</div>
-
-<div id="composer-toolbar">
-  <div class="toolbar-top-row">
-    <input type="file" id="svg-upload" accept=".svg">
-    <button onclick="rotateSVG()">Rotiraj +90°</button>
-    <button onclick="zoomIn()">Povećaj</button>
-    <button onclick="zoomOut()">Smanji</button>
-
-    <button onclick="downloadA4SVG()">Export SVG</button>
-    <button onclick="exportToPNG()">Export PNG</button>
-
-    <button id="switch-layer">Layer: GRAPHICS</button>
-    <input type="text" id="title-input" placeholder="Upiši naziv (npr. DasDuino Core)" style="max-width: 250px;">
-    <input type="text" id="sku-input" placeholder="Unesi SKU (npr. 12345)" style="max-width: 150px;">
-    <button onclick="addTitleBox()">Dodaj naslov</button>
-    <button onclick="addPinLegend()">Pins</button>
+  <div id="navbar">
+    <a href="/kicad">KiCad Layers</a>
+    <a href="/editor-upload">SVG Pin Editor</a>
+    <a href="/composer" class="active">SVG to PDF</a>
   </div>
 
-  <div class="toolbar-jumper-row" id="jumper-inputs">
-    <!-- Inputi za jumpere će se dinamički dodavati ovdje -->
-    <button onclick="addJumperDetails()">Generiraj Jumpere</button>
-    <button onclick="addJumperInput()">+</button>
+  <div id="main-content">
+    <div id="composer-toolbar">
+
+      <!-- Layer modes -->
+      <div class="toolbar-section">
+        <strong>Editor Tools</strong>
+        <div class="toolbar-row">
+          <button id="switch-layer">Layer: GRAPHICS</button>
+          <button onclick="enableDeleteMode()">Delete Mode</button>
+        </div>
+      </div>
+    
+      <!-- SVG Transform Controls -->
+      <div class="toolbar-section">
+        <strong>Canvas Controls</strong>
+        <div class="toolbar-row">
+          <input type="file" id="svg-upload" accept=".svg">
+          <button onclick="rotateSVG()">Rotate +90°</button>
+          <button onclick="zoomIn()">Zoom In</button>
+          <button onclick="zoomOut()">Zoom Out</button>
+        </div>
+      </div>
+    
+      <!-- Title + SKU -->
+      <div class="toolbar-section">
+        <strong>Title & SKU</strong>
+        <div class="toolbar-row">
+          <input type="text" id="title-input" placeholder="Enter title (e.g. DasDuino Core)">
+          <input type="text" id="sku-input" placeholder="Enter SKU (e.g. 12345)">
+          <button onclick="addTitleBox()">Add Title</button>
+        </div>
+      </div>
+    
+      <!-- Pin Legend -->
+      <div class="toolbar-section">
+        <strong>Pinout Legend</strong>
+        <div class="toolbar-row">
+          <button onclick="addPinLegend()">Add Legend</button>
+        </div>
+      </div>
+    
+      <!-- Jumpers -->
+      <div class="toolbar-section">
+        <strong>Jumper Descriptions</strong>
+        <div class="toolbar-row" id="jumper-inputs">
+          <!-- Jumper inputs dynamically inserted here -->
+          <button onclick="addJumperDetails()">Render Jumpers</button>
+          <button onclick="addJumperInput()">Add Jumper Line</button>
+        </div>
+      </div>
+    
+      <!-- Additional Info -->
+      <div class="toolbar-section">
+        <strong>General Info Box</strong>
+        <div class="toolbar-row">
+          <input type="text" id="info-text" placeholder="Info text (e.g. Use external 3.3V)">
+          <button onclick="addGeneralInfo('R')">Add Info (Right)</button>
+          <button onclick="addGeneralInfo('L')">Add Info (Left)</button>
+        </div>
+      </div>
+    
+      <!-- Export Section -->
+      <div class="toolbar-section">
+        <strong>Export</strong>
+        <div class="toolbar-row">
+          <button onclick="downloadA4SVG()">Export as SVG</button>
+          <button onclick="exportToPNG()">Export as PNG</button>
+        </div>
+      </div>    
+    </div>
+
+    <div id="composer-area">
+      <div class="paper-wrapper">
+        <svg id="graphics-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 794">
+          <g id="graphics-layer"></g>
+        </svg>
+        <svg id="user-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 794">
+          <g id="user-layer" transform="rotate(0 561 397)"></g>
+        </svg>
+      </div>
+    </div>
   </div>
-
-  <div class="toolbar-jumper-row">
-    <!-- ... postojeći jumper inputi ... -->
-    <input type="text" id="info-text" placeholder="General info tekst" style="max-width: 250px;">
-    <button onclick="addGeneralInfo('R')">Dodaj Info R</button>
-    <button onclick="addGeneralInfo('L')">Dodaj Info L</button>
-  </div>
-
-
-
-</div>
-
-
-<div id="composer-area">
-  <div class="paper-wrapper">
-    <svg id="graphics-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 794">
-      <g id="graphics-layer"></g>
-    </svg>
-    <svg id="user-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1122 794">
-      <g id="user-layer" transform="rotate(0 561 397)"></g>
-    </svg>
-  </div>
-</div>
 
 <script>
   const A4_WIDTH = 1122;
@@ -744,6 +822,42 @@ function exportToPNG() {
     a.click();
     URL.revokeObjectURL(url);
   }
+
+
+let deleteMode = false;
+
+function enableDeleteMode() {
+  deleteMode = !deleteMode;
+  document.body.style.cursor = deleteMode ? "crosshair" : "default";
+  alert(deleteMode ? "Click an element to delete it" : "Delete mode disabled");
+}
+
+graphicsLayer.addEventListener("click", function (e) {
+  if (!deleteMode) return;
+
+  let target = e.target;
+  while (target && target.tagName !== "g" && target.tagName !== "svg") {
+    target = target.parentNode;
+  }
+
+  if (target && target.tagName === "g") {
+    target.remove();
+  }
+
+  deleteMode = false;
+  document.body.style.cursor = "default";
+});
+
+
+
+
+
+
+
+
+
+
+
 </script>
 
 </body>
