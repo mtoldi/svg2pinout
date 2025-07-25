@@ -215,7 +215,8 @@ button:hover {
         <div class="toolbar-row" id="jumper-inputs">
           <!-- Jumper inputs dynamically inserted here -->
           <button onclick="addJumperDetails()">Render Jumpers</button>
-          <button onclick="addJumperInput()">Add Jumper Line</button>
+          <button onclick="addJumperInput()">+</button>
+          <button onclick="removeJumperInput()">−</button>
         </div>
       </div>
     
@@ -524,10 +525,19 @@ function addJumperInput() {
   const container = document.getElementById("jumper-inputs");
   const input = document.createElement("input");
   input.type = "text";
-  input.placeholder = "Opis jumppera";
+  input.placeholder = "Jumper description";
   input.style.maxWidth = "200px";
   container.appendChild(input);
 }
+
+function removeJumperInput() {
+  const container = document.getElementById("jumper-inputs");
+  const inputs = container.querySelectorAll("input");
+  if (inputs.length > 0) {
+    container.removeChild(inputs[inputs.length - 1]);
+  }
+}
+
 
 function measureSVGTextWidth(textContent) {
   const tempText = document.createElementNS("http://www.w3.org/2000/svg", "text");
