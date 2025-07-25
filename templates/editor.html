@@ -21,23 +21,29 @@
   }
 
   #navbar {
-    background: #333;
-    color: white;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: #2E2E2E;
+    color: #D6CFE1;
     padding: 10px 20px;
     display: flex;
     gap: 20px;
     align-items: center;
+    z-index: 10;
   }
 
   #navbar a {
-    color: white;
+    color: #D6CFE1;
     text-decoration: none;
     font-weight: bold;
     font-size: 0.95rem;
   }
 
   #navbar a.active {
-    background-color: #555;
+    background-color: #9E4A4F;
     padding: 6px 12px;
     border-radius: 5px;
   }
@@ -315,6 +321,7 @@ function initEditor() {
           <button onclick="placeAllLabels('${pinId}', 'S')">S</button>
           <button onclick="placeAllLabels('${pinId}', 'W')">W</button>
           <button onclick="addLabel('${pinId}')">+</button>
+          <button onclick="removeLabel('${pinId}')">−</button>
           <div id="${pinId}-labels"></div>
           <button onclick="placeAllLabels('${pinId}', 'NM')">NM</button>
           <button onclick="placeAllLabels('${pinId}', 'SM')">SM</button>
@@ -419,6 +426,28 @@ row.appendChild(select);
 
   container.appendChild(row);
 }
+
+
+function removeLabel(pinId) {
+  const container = document.getElementById(`${pinId}-labels`);
+  const rows = container.querySelectorAll(".label-row");
+  if (rows.length > 0) {
+    const last = rows[rows.length - 1];
+    last.remove();
+
+    // Obriši i SVG elemente povezane s tim labelIndexom
+    const labelIndex = rows.length - 1;
+    [...overlay.querySelectorAll(`[data-pin="${pinId}"][data-label-index="${labelIndex}"]`)].forEach(el => el.remove());
+
+    // Ukloni podatke iz lastPlacedLabels ako postoje
+    if (overlay.lastPlacedLabels?.[pinId]) {
+      overlay.lastPlacedLabels[pinId].splice(labelIndex, 1);
+    }
+  }
+}
+
+
+
 
 function rotatePoint([x, y], cx, cy, angleDeg) {
   const angleRad = angleDeg * Math.PI / 180;

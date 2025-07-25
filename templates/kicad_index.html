@@ -2,12 +2,60 @@
 <html>
 <head>
   <title>KiCad SVG Export</title>
-</head>
-<body>
-  <div style="background:#333; color:white; padding:10px;">
-    <a href="/kicad" style="color:white; margin-right:20px;">KiCad Layers</a>
-    <a href="/editor-upload" style="color:white;">SVG Pin Editor</a>
 
+
+<style>
+
+body {
+  font-family: 'Source Code Pro', monospace;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #F9F8FB;
+  color: #2E2E2E;
+  overflow: hidden;
+}
+
+#navbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: #2E2E2E;
+  color: #D6CFE1;
+  padding: 10px 20px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  z-index: 10;
+}
+
+#navbar a {
+  color: #D6CFE1;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+#navbar a.active {
+  background-color: #9E4A4F;
+  padding: 6px 12px;
+  border-radius: 5px;
+}
+
+</style>
+
+
+</head>
+
+
+<body>
+  <div id="navbar">
+    <a href="/kicad" class="active">KiCad Layers</a>
+    <a href="/editor-upload">SVG Pin Editor</a>
+    <a href="/composer">SVG to PDF</a>
   </div>
 
   <h1>Upload KiCad PCB file</h1>

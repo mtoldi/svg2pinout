@@ -4,32 +4,39 @@
   <title>SVG Upload</title>
   <style>
     body {
-      font-family: 'source-pro', sans-serif;
+      font-family: 'Source Code Pro', monospace;
       margin: 0;
       color: #222;
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
     }
 
     #navbar {
-      background: #333;
-      color: white;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: #2E2E2E;
+      color: #D6CFE1;
       padding: 10px 20px;
       display: flex;
       gap: 20px;
       align-items: center;
+      z-index: 10;
     }
 
     #navbar a {
-      color: white;
+      color: #D6CFE1;
       text-decoration: none;
       font-weight: bold;
       font-size: 0.95rem;
     }
 
     #navbar a.active {
-      background-color: #555;
+      background-color: #9E4A4F;
       padding: 6px 12px;
       border-radius: 5px;
     }
