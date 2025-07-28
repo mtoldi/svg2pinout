@@ -158,7 +158,6 @@ button:hover {
 }
 </style>
 
-
 </head>
 
 <body>
@@ -209,6 +208,7 @@ button:hover {
         <div class="toolbar-row">
           <button onclick="addPinLegend()">Add Legend</button>
           <button onclick="addSolderedLogo()">Add Soldered Logo</button>
+          <button onclick="addOpenSourceLogo()">Open Source</button>
         </div>
       </div>
     
@@ -276,7 +276,6 @@ button:hover {
 
   let scaleFactor = 1;
 
-
   function updateLayerMode() {
     if (currentLayer === "graphics") {
       graphicsSVG.style.pointerEvents = "auto";
@@ -295,7 +294,6 @@ button:hover {
   });
 
   updateLayerMode();
-
 
   loadComposerState();  // <<< Restores previous state if available
 
@@ -372,12 +370,7 @@ button:hover {
     });
   }
 
-
-
-
   window.addEventListener("beforeunload", saveComposerState);
-
-
 
   document.getElementById('svg-upload').addEventListener('change', e => {
     const file = e.target.files[0];
@@ -421,8 +414,6 @@ button:hover {
     updateUserLayerTransform();
   }
 
-
-
   function updateUserLayerTransform() {
     const cx = A4_WIDTH / 2;
     const cy = A4_HEIGHT / 2;
@@ -433,7 +424,6 @@ button:hover {
     );
     saveComposerState()
   }
-
 
   // Drag logic
   userLayer.addEventListener("mousedown", e => {
@@ -544,7 +534,7 @@ function addTitleBox() {
 
 function addPinLegend() {
   const startX = 850;
-  const startY = 230;
+  const startY = 165;
   const boxSize = 16;
   const boxGap = 8;
   const textOffset = 10;
@@ -655,8 +645,6 @@ function addPinLegend() {
   saveComposerState()
 }
 
-
-
 function addJumperInput() {
   const container = document.getElementById("jumper-inputs");
   const input = document.createElement("input");
@@ -722,9 +710,6 @@ function addSolderedLogo() {
   textSub.setAttribute("font-family", "Source Code Pro, monospace");
   textSub.setAttribute("text-anchor", "middle");
 
-
-
-
   // Append these after all paths
   group.appendChild(pathTop);
   group.appendChild(pathBottom);
@@ -735,13 +720,6 @@ function addSolderedLogo() {
   graphicsLayer.appendChild(textSub);
   saveComposerState()
 }
-
-
-
-
-
-
-
 
 function measureSVGTextWidth(textContent) {
   const tempText = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -1009,8 +987,6 @@ function exportToPNG() {
   img.src = url;
 }
 
-
-
 function addWarningInfo(direction = "R") {
   const infoText = document.getElementById("info-text").value.trim();
   if (!infoText) return;
@@ -1163,7 +1139,78 @@ function clearPage() {
   localStorage.removeItem("composerSVG");
 }
 
+function addOpenSourceLogo() {
+  const svgNS = "http://www.w3.org/2000/svg";
+  const group = document.createElementNS(svgNS, "g");
+  group.setAttribute("transform", "translate(860, 600) scale(3)");
 
+  // Open Source Icon (Gear/Keyhole)
+  const path = document.createElementNS(svgNS, "path");
+  path.setAttribute("d", "M12 2c5.523 0 10 4.477 10 10 0 4.13-2.504 7.676-6.077 9.201l-2.518-6.55C14.354 14.148 15 13.15 15 12c0-1.657-1.343-3-3-3s-3 1.343-3 3c0 1.15.647 2.148 1.596 2.652l-2.518 6.55C4.504 19.675 2 16.13 2 12 2 6.477 6.477 2 12 2z");
+  path.setAttribute("fill", "#500B76");
+  group.appendChild(path);
+
+  // === Creative Commons Icon (outline circle + CC in purple) ===
+  const ccGroup = document.createElementNS(svgNS, "g");
+  ccGroup.setAttribute("transform", "translate(25, 0)");
+
+  const outer = document.createElementNS(svgNS, "circle");
+  outer.setAttribute("cx", "12");
+  outer.setAttribute("cy", "12");
+  outer.setAttribute("r", "10");
+  outer.setAttribute("fill", "none");
+  outer.setAttribute("stroke", "#500B76");
+  outer.setAttribute("stroke-width", "2.5");
+  ccGroup.appendChild(outer);
+
+  // Centered CC letters
+  const c1 = document.createElementNS(svgNS, "text");
+  c1.setAttribute("x", "6");
+  c1.setAttribute("y", "15");
+  c1.setAttribute("font-size", "10");
+  c1.setAttribute("font-family", "Source Code Pro, monospace");
+  c1.setAttribute("font-weight", "bold");
+  c1.setAttribute("fill", "#500B76");
+  c1.textContent = "C";
+  ccGroup.appendChild(c1);
+
+  const c2 = document.createElementNS(svgNS, "text");
+  c2.setAttribute("x", "11.5");
+  c2.setAttribute("y", "15");
+  c2.setAttribute("font-size", "10");
+  c2.setAttribute("font-family", "Source Code Pro, monospace");
+  c2.setAttribute("font-weight", "bold");
+  c2.setAttribute("fill", "#500B76");
+  c2.textContent = "C";
+  ccGroup.appendChild(c2);
+
+  group.appendChild(ccGroup);
+
+  // License description text (purple, bold)
+  const lines = [
+    "This work is licensed under the Creative Commons",
+    "Attribution-ShareAlike 4.0 International.",
+    "To view a copy of this license, visit",
+    "http://creativecommons.org/licenses/by-sa/4.0/",
+    "or send a letter to Creative Commons,",
+    "PO Box 1866, Mountain View, CA 94042, USA."
+  ];
+
+  lines.forEach((line, i) => {
+    const textEl = document.createElementNS(svgNS, "text");
+    textEl.setAttribute("x", "0");
+    textEl.setAttribute("y", `${30 + i * 5}`);
+    textEl.setAttribute("font-size", "3");
+    textEl.setAttribute("fill", "#500B76");
+    textEl.setAttribute("font-family", "Source Code Pro, monospace");
+    textEl.setAttribute("font-weight", "bold");
+    textEl.textContent = line;
+    group.appendChild(textEl);
+  });
+
+  graphicsLayer.appendChild(group);
+  saveComposerState();
+}
 
 </script>
 
