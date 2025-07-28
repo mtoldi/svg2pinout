@@ -82,6 +82,7 @@ body {
 }
 
 .toolbar-row {
+  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -96,7 +97,7 @@ input[type="text"], input[type="file"] {
   padding: 6px 10px;
   border-radius: 4px;
   transition: background-color 0.2s, border-color 0.2s;
-  max-width: 100%;
+  max-width: 40%;
   flex: 1;
 }
 
@@ -198,6 +199,7 @@ button:hover {
         <div class="toolbar-row">
           <input type="text" id="title-input" placeholder="Enter title (e.g. DasDuino Core)">
           <input type="text" id="sku-input" placeholder="Enter SKU (e.g. 12345)">
+          <input type="text" id="version-input" placeholder="Enter version (e.g. v1.0)">
           <button onclick="addTitleBox()">Add Title</button>
         </div>
       </div>
@@ -206,8 +208,8 @@ button:hover {
       <div class="toolbar-section">
         <strong>Pinout Legend</strong>
         <div class="toolbar-row">
-          <button onclick="addPinLegend()">Add Legend</button>
-          <button onclick="addSolderedLogo()">Add Soldered Logo</button>
+          <button onclick="addPinLegend()">Pin Legend</button>
+          <button onclick="addSolderedLogo()">Soldered Logo</button>
           <button onclick="addOpenSourceLogo()">Open Source</button>
         </div>
       </div>
@@ -223,18 +225,29 @@ button:hover {
         </div>
       </div>
     
-      <!-- Additional Info -->
-      <div class="toolbar-section">
-        <strong>Info & Warning Boxes</strong>
-        <div class="toolbar-row">
-          <input type="text" id="info-text" placeholder="Info text (e.g. Use external 3.3V)">
-          <button onclick="addGeneralInfo('R')">Add Info (Right)</button>
-          <button onclick="addGeneralInfo('L')">Add Info (Left)</button>
-          <button onclick="addWarningInfo('R')">Add Warning (Right)</button>
-          <button onclick="addWarningInfo('L')">Add Warning (Left)</button>
-        </div>
+    <!-- Additional Info -->
+    <div class="toolbar-section">
+      <strong>Info & Warning Boxes</strong>
+    
+      <!-- Info Text Input Row -->
+      <div class="toolbar-row">
+        <input type="text" id="info-text" placeholder="Info text (e.g. Use external 3.3V)">
       </div>
     
+      <!-- General Info Buttons Row -->
+      <div class="toolbar-row">
+        <button onclick="addGeneralInfo('R')">Add Info (Right)</button>
+        <button onclick="addGeneralInfo('L')">Add Info (Left)</button>
+      </div>
+    
+      <!-- Warning Buttons Row -->
+      <div class="toolbar-row">
+        <button onclick="addWarningInfo('R')">Add Warning (Right)</button>
+        <button onclick="addWarningInfo('L')">Add Warning (Left)</button>
+      </div>
+    </div>
+
+
       <!-- Export Section -->
       <div class="toolbar-section">
         <strong>Export</strong>
@@ -256,6 +269,7 @@ button:hover {
       </div>
     </div>
   </div>
+
 
 <script>
   const A4_WIDTH = 1122;
@@ -454,6 +468,10 @@ function addTitleBox() {
   const rawSKU = skuInput.value.trim();
   if (!rawTitle || !rawSKU) return;
 
+  const versionInput = document.getElementById("version-input");
+  const rawVersion = versionInput.value.trim();
+
+
   const title = rawTitle.toUpperCase();
   const skuText = `solde.red/${rawSKU}`;
 
@@ -499,7 +517,7 @@ function addTitleBox() {
 
   // Plavi pravokutnik sa SKU linkom
   const x2 = x1 + width1 + 20;
-  const width2 = 230;
+  const width2 = 240;
 
   const skuPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
   skuPath.setAttribute("d", `
@@ -522,6 +540,18 @@ function addTitleBox() {
   skuTextEl.setAttribute("font-family", "Source Code Pro, monospace");
   skuTextEl.textContent = skuText;
 
+  if (rawVersion) {
+    const versionText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    versionText.setAttribute("x", 860);         // lijeva margina plavog pravokutnika
+    versionText.setAttribute("y", y + height + 40);  // ispod pravokutnika
+    versionText.setAttribute("fill", "#00C0DE");
+    versionText.setAttribute("font-size", "14");
+    versionText.setAttribute("font-family", "Source Code Pro, monospace");
+    versionText.textContent = rawVersion;
+
+    group.appendChild(versionText);
+  }
+
   // Dodaj sve elemente u zajedničku grupu
   group.appendChild(titlePath);
   group.appendChild(titleText);
@@ -534,7 +564,7 @@ function addTitleBox() {
 
 function addPinLegend() {
   const startX = 850;
-  const startY = 165;
+  const startY = 185;
   const boxSize = 16;
   const boxGap = 8;
   const textOffset = 10;
@@ -669,7 +699,7 @@ function addSolderedLogo() {
 
   // Triangle extending the rectangle visually (roof-like)
   const triangle = document.createElementNS(svgNS, "path");
-  triangle.setAttribute("d", "M0 20 L120 -45 L240 20 Z");
+  triangle.setAttribute("d", "M0 21 L120 -44 L240 21 Z");
   triangle.setAttribute("fill", "#500B76");
   group.appendChild(triangle);
 
@@ -974,11 +1004,15 @@ function exportToPNG() {
     ctx.fillRect(0, 0, PNG_WIDTH, PNG_HEIGHT);
     ctx.drawImage(img, 0, 0, PNG_WIDTH, PNG_HEIGHT);
 
+    const rawTitle = document.getElementById("title-input")?.value.trim() || "a4_export";
+    const safeTitle = rawTitle.replace(/[^a-z0-9\-_\s]/gi, '').replace(/\s+/g, '_');
+    const fileName = `${safeTitle}.png`;
+
     canvas.toBlob(function (blob) {
       const pngUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = pngUrl;
-      a.download = "a4_export.png";
+      a.download = fileName;
       a.click();
       URL.revokeObjectURL(pngUrl);
     }, "image/png");
@@ -988,6 +1022,7 @@ function exportToPNG() {
 
   img.src = url;
 }
+
 
 
 function addWarningInfo(direction = "R") {
