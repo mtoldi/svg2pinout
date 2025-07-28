@@ -25,7 +25,7 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 40px;
+    height: 60px;
     background: #2E2E2E;
     color: #D6CFE1;
     padding: 10px 20px;
@@ -162,18 +162,34 @@
 <body>
 
   <div id="navbar">
+    <a href="/" >Home</a>
     <a href="/kicad">KiCad Layers</a>
-    <a href="/editor-upload" class="active">SVG Pin Editor</a>
-    <a href="/composer">SVG to PDF</a>
+    <a href="/editor" class="active">SVG Pin Editor</a>
+    <a href="/composer">SVG Composer</a>
   </div>
 
   <div id="main-content">
 
     <div id="editor-panel">
-<div style="display: flex; justify-content: space-between; align-items: center;">
-  <h3 style="margin: 0;">Pinovi</h3>
-  <button onclick="downloadSVG()">Preuzmi</button>
+
+<div id="upload-box" style="border: 2px dashed #9E4A4F; background-color: #F3F1F8; padding: 20px; border-radius: 10px; margin-bottom: 1rem; text-align: center;">
+  <h4 style="margin-top: 0;">Upload SVG</h4>
+  <p style="font-size: 0.85rem;">Drag & drop your <code>.svg</code> file here<br>or use the file picker.</p>
+  <label style="cursor: pointer; background: #D6CFE1; border: 1px solid #2E2E2E; padding: 6px 12px; border-radius: 5px;">
+    Choose File
+    <input type="file" id="svg-upload" accept=".svg" style="display: none;">
+  </label>
+  <div id="uploaded-filename" style="font-size: 0.8rem; margin-top: 0.5rem;"></div>
 </div>
+
+
+
+<div style="display: flex; justify-content: space-between; align-items: center;">
+  <h3 style="margin: 0;">Pins</h3>
+  <button onclick="downloadSVG()">Download SVG</button>
+</div>
+
+
 <div id="pin-list"></div>
 
     </div>
@@ -194,7 +210,51 @@
     let pinMap = new Map();
     let selectedPinId = null;
     let highlightCircle = null;
-  
+
+    const uploadBox = document.getElementById('upload-box');
+    const svgUpload = document.getElementById('svg-upload');
+    const uploadedFilename = document.getElementById('uploaded-filename');
+
+    // Drag & Drop behavior
+    uploadBox.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadBox.style.backgroundColor = '#ECE6F3';
+    });
+    uploadBox.addEventListener('dragleave', () => {
+      uploadBox.style.backgroundColor = '#F3F1F8';
+    });
+    uploadBox.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadBox.style.backgroundColor = '#F3F1F8';
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.svg')) {
+        handleSVGFile(file);
+      } else {
+        alert('Please upload a valid .svg file.');
+      }
+    });
+
+    svgUpload.addEventListener('change', () => {
+      const file = svgUpload.files[0];
+      if (file && file.name.endsWith('.svg')) {
+        handleSVGFile(file);
+      }
+    });
+
+    function handleSVGFile(file) {
+      uploadedFilename.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        container.innerHTML = e.target.result;
+        pinMap.clear();
+        pinList.innerHTML = "";
+        highlightCircle?.remove();
+        highlightCircle = null;
+        selectedPinId = null;
+        initEditor();
+      };
+      reader.readAsText(file);
+    }
 
     fetch("/svg/sku.svg")
       .then(res => res.text())
@@ -739,10 +799,7 @@ function downloadSVG() {
   a.click();
   URL.revokeObjectURL(url);
 }
-
-
-
   
-  </script>
+</script>
 </body>
 </html>

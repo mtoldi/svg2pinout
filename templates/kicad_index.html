@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>KiCad SVG Export</title>
+  <title>KiCad Layer Tools</title>
   <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
-
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
   <style>
     body {
       font-family: 'Source Code Pro', monospace;
@@ -46,21 +47,19 @@
 
     main {
       margin-top: 60px;
-      padding: 40px;
       flex: 1;
       display: flex;
-      justify-content: center;
-      align-items: center;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .upload-box {
       border: 2px dashed #9E4A4F;
       background-color: #F3F1F8;
-      padding: 40px;
+      padding: 20px;
       border-radius: 10px;
-      width: 400px;
+      width: 85%;
       text-align: center;
-      transition: background-color 0.3s, border-color 0.3s;
     }
 
     .upload-box.dragover {
@@ -72,97 +71,295 @@
       display: none;
     }
 
-    label.file-label {
-      display: inline-block;
-      padding: 10px 16px;
-      margin-top: 10px;
-      background-color: #D6CFE1;
-      border: 1px solid #2E2E2E;
-      color: #2E2E2E;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.2s, border-color 0.2s;
-    }
-
-    label.file-label:hover {
-      background-color: #C9C1D8;
-      border-color: #9E4A4F;
-    }
-
-    button {
+    label.file-label, button {
       font-family: 'Source Code Pro', monospace;
       background-color: #D6CFE1;
       border: 1px solid #2E2E2E;
       color: #2E2E2E;
       padding: 10px 16px;
-      margin-top: 20px;
+      margin-top: 10px;
       border-radius: 4px;
       cursor: pointer;
-      transition: background-color 0.2s, border-color 0.2s;
     }
 
-    button:hover {
+    label.file-label:hover, button:hover {
       background-color: #C9C1D8;
       border-color: #9E4A4F;
     }
+
+    #layer-tools {
+      display: flex;
+      flex: 1;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #layer-controls {
+      width: 350px;
+      padding: 20px;
+      background-color: #F3F1F8;
+      overflow-y: auto;
+      border-right: 1px solid #D6CFE1;
+    }
+
+    #layer-controls h2 {
+      margin-top: 0;
+    }
+
+    .layer-item {
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #D6CFE1;
+      background: #f9f9f9;
+      border-radius: 6px;
+      cursor: move;
+    }
+
+    #controls {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #controls input[type="text"],
+    #controls button {
+      font-family: 'Source Code Pro', monospace;
+      background-color: #D6CFE1;
+      border: 1px solid #2E2E2E;
+      color: #2E2E2E;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    #controls input[type="text"]:focus {
+      outline: none;
+      border-color: #9E4A4F;
+      background-color: #ECE6F3;
+    }
+
+    input[type="color"] {
+      font-family: 'Source Code Pro', monospace;
+      background-color: #D6CFE1;
+      border: 1px solid #2E2E2E;
+      color: #2E2E2E;
+      padding: 6px 10px;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+
+    #svg-viewer {
+      flex-grow: 1;
+      border-left: 1px solid #D6CFE1;
+      overflow: hidden;
+      position: relative;
+      background: #EEE;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #combined-svg {
+      width: 100%;
+      height: 100%;
+    }
   </style>
 </head>
-
 <body>
-  <div id="navbar">
-    <a href="/kicad" class="active">KiCad Layers</a>
-    <a href="/editor-upload">SVG Pin Editor</a>
-    <a href="/composer">SVG to PDF</a>
+
+<div id="navbar">
+  <a href="/" >Home</a>
+  <a href="/kicad" class="active">KiCad Layers</a>
+  <a href="/editor">SVG Pin Editor</a>
+  <a href="/composer">SVG Composer</a>
+</div>
+
+<main>
+
+<div id="layer-tools">
+
+<div id="layer-controls">
+  <form method="POST" enctype="multipart/form-data" id="upload-form">
+    <div class="upload-box" id="drop-zone" style="margin: 0 0 20px 0;">
+      <h3 style="margin-top: 0;">Upload KiCad PCB</h3>
+      <p style="font-size: 0.85rem;">
+        Drag & drop your <code>.kicad_pcb</code> file<br>or use the file picker.
+      </p>
+      <label class="file-label">
+        Choose File
+        <input type="file" name="file" accept=".kicad_pcb" required id="file-input">
+      </label>
+      <div id="file-name" style="margin-top: 8px; font-size: 0.85rem;"></div>
+      <button type="submit">Generate SVGs</button>
+    </div>
+  </form>
+
+  <h2>Layers</h2>
+  <div id="layer-list">
+    {% for svg in svg_files %}
+    {% set color = "#000000" %}
+    {% if "F_Silkscreen" in svg or "Edge_Cuts" in svg %}
+      {% set color = "#5B2379" %}
+    {% elif "User_Drawings" in svg or "F_Mask" in svg %}
+      {% set color = "#cccccc" %}
+    {% endif %}
+    <div class="layer-item" data-file="{{ svg }}">
+      <label>{{ svg }}</label><br>
+      Color: <input type="color" value="{{ color }}" class="color-picker"><br>
+    </div>
+    {% endfor %}
   </div>
 
-  <main>
-    <form method="POST" enctype="multipart/form-data" id="upload-form">
-      <div class="upload-box" id="drop-zone">
-        <h2>Upload KiCad PCB</h2>
-        <p>Drag & drop your <code>.kicad_pcb</code> file here<br>or use the file picker below.</p>
-        <label class="file-label">
-          Choose File
-          <input type="file" name="file" accept=".kicad_pcb" required id="file-input">
-        </label>
-        <div id="file-name" style="margin-top: 10px; font-size: 0.9rem;"></div>
-        <button type="submit">Generate SVGs</button>
-      </div>
-    </form>
-  </main>
+  <div id="controls">
+    <button onclick="updateStack()">Render Stack</button>
+    <label for="sku-input">SKU:</label>
+    <input type="text" id="sku-input" placeholder="e.g. 333037">
+    <button onclick="downloadSVG()">Download SVG</button>
+  </div>
+</div>
 
-  <script>
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-input');
-    const fileNameDisplay = document.getElementById('file-name');
 
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.classList.add('dragover');
-    });
+<div id="svg-viewer">
+  <svg id="combined-svg" xmlns="http://www.w3.org/2000/svg">
+    <g id="main-content">
+      <g id="kicad-layers"></g>
+    </g>
+  </svg>
+</div>
 
-    dropZone.addEventListener('dragleave', () => {
-      dropZone.classList.remove('dragover');
-    });
 
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
+</div>
+</main>
 
-      const file = e.dataTransfer.files[0];
-      if (file && file.name.endsWith('.kicad_pcb')) {
-        fileInput.files = e.dataTransfer.files;
-        fileNameDisplay.textContent = file.name;
-      } else {
-        alert('Please upload a valid .kicad_pcb file.');
+<script>
+  // Upload logic
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const fileNameDisplay = document.getElementById('file-name');
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.kicad_pcb')) {
+      fileInput.files = e.dataTransfer.files;
+      fileNameDisplay.textContent = file.name;
+    } else {
+      alert('Please upload a valid .kicad_pcb file.');
+    }
+  });
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (file) {
+      fileNameDisplay.textContent = file.name;
+    }
+  });
+
+  // Stack logic
+  Sortable.create(document.getElementById('layer-list'), { animation: 150 });
+
+  function applyColorRecursive(element, color, layerName = "") {
+    if (element.nodeType !== 1) return;
+    const isEdgeCuts = layerName.includes("Edge_Cuts");
+    const isSilkscreen = layerName.includes("F_Silkscreen");
+    const strokeWidth = isEdgeCuts ? "0.2" : isSilkscreen ? "0.05" : null;
+    const style = element.getAttribute("style");
+
+    if (style) {
+      let newStyle = style
+        .replace(/stroke:\s*[^;]+/, isEdgeCuts || isSilkscreen ? `stroke:${color}` : `stroke:none`)
+        .replace(/fill:\s*[^;]+/, isEdgeCuts ? `fill:none` : `fill:${color}`);
+      if (strokeWidth !== null) {
+        if (newStyle.includes("stroke-width")) {
+          newStyle = newStyle.replace(/stroke-width:\s*[^;]+/, `stroke-width:${strokeWidth}`);
+        } else {
+          newStyle += `;stroke-width:${strokeWidth}`;
+        }
       }
-    });
-
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if (file) {
-        fileNameDisplay.textContent = file.name;
+      element.setAttribute("style", newStyle);
+    } else {
+      element.setAttribute("stroke", isEdgeCuts || isSilkscreen ? color : "none");
+      element.setAttribute("fill", isEdgeCuts ? "none" : color);
+      if (strokeWidth !== null) {
+        element.setAttribute("stroke-width", strokeWidth);
       }
+    }
+
+    for (let child of element.children) {
+      applyColorRecursive(child, color, layerName);
+    }
+  }
+
+  let panZoomInstance = null;
+
+  async function updateStack() {
+    const viewer = document.getElementById('combined-svg');
+    const group = document.getElementById('kicad-layers');
+    group.innerHTML = '';
+
+    const items = document.querySelectorAll('.layer-item');
+    for (const item of items) {
+      const file = item.dataset.file;
+      const color = item.querySelector('.color-picker').value;
+      const res = await fetch(`/kicad/svg/${file}`);
+      const text = await res.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, "image/svg+xml");
+      const innerSvg = doc.querySelector('svg');
+      if (!innerSvg) continue;
+
+      if (viewer.getAttribute("viewBox") === null) {
+        const viewBox = innerSvg.getAttribute("viewBox");
+        if (viewBox) viewer.setAttribute("viewBox", viewBox);
+      }
+
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      for (const child of innerSvg.children) {
+        const cloned = child.cloneNode(true);
+        applyColorRecursive(cloned, color, file);
+        g.appendChild(cloned);
+      }
+      group.appendChild(g);
+    }
+
+    if (panZoomInstance) panZoomInstance.destroy();
+    panZoomInstance = svgPanZoom('#combined-svg', {
+      zoomEnabled: true, fit: true, center: true, controlIconsEnabled: false
     });
-  </script>
+    setTimeout(() => panZoomInstance.zoomBy(3.0), 0);
+  }
+
+  function downloadSVG() {
+    const svgElement = document.getElementById('combined-svg');
+    const sku = document.getElementById('sku-input').value.trim();
+    const filename = sku ? `${sku}.svg` : 'combined_layers.svg';
+    const svgHeader = '<?xml version="1.0" standalone="no"?>\n' +
+                      '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"\n' +
+                      ' "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n';
+    const serializer = new XMLSerializer();
+    const svgText = svgHeader + serializer.serializeToString(svgElement);
+    const blob = new Blob([svgText], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+</script>
 </body>
 </html>

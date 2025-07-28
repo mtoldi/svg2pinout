@@ -163,9 +163,10 @@ button:hover {
 
 <body>
   <div id="navbar">
+    <a href="/" >Home</a>
     <a href="/kicad">KiCad Layers</a>
-    <a href="/editor-upload">SVG Pin Editor</a>
-    <a href="/composer" class="active">SVG to PDF</a>
+    <a href="/editor">SVG Pin Editor</a>
+    <a href="/composer" class="active">SVG Composer</a>
   </div>
 
   <div id="main-content">
@@ -1101,10 +1102,6 @@ function addWarningInfo(direction = "R") {
   saveComposerState()
 }
 
-
-
-
-
 function downloadA4SVG() {
   const exportSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   exportSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
@@ -1165,12 +1162,6 @@ function clearPage() {
 
   localStorage.removeItem("composerSVG");
 }
-
-
-
-
-
-
 
 
 
