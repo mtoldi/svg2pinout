@@ -532,13 +532,25 @@ function addTitleBox() {
 
   const skuTextEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
   skuTextEl.setAttribute("x", x2 + width2 / 2);
-  skuTextEl.setAttribute("y", y + height / 2);
+  skuTextEl.setAttribute("y", y + height / 2 - 6);  // Slight upward shift to center both lines
   skuTextEl.setAttribute("text-anchor", "middle");
-  skuTextEl.setAttribute("dominant-baseline", "middle");
   skuTextEl.setAttribute("fill", "white");
-  skuTextEl.setAttribute("font-size", "16");
+  skuTextEl.setAttribute("font-size", "14");
   skuTextEl.setAttribute("font-family", "Source Code Pro, monospace");
-  skuTextEl.textContent = skuText;
+
+  const line1 = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+  line1.setAttribute("x", x2 + width2 / 2);
+  line1.setAttribute("dy", "0");
+  line1.textContent = "full product documentation";
+
+  const line2 = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+  line2.setAttribute("x", x2 + width2 / 2);
+  line2.setAttribute("dy", "1.2em");
+  line2.textContent = skuText;
+
+  skuTextEl.appendChild(line1);
+  skuTextEl.appendChild(line2);
+
 
   if (rawVersion) {
     const versionText = document.createElementNS("http://www.w3.org/2000/svg", "text");
