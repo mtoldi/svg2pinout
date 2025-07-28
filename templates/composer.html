@@ -177,6 +177,7 @@ button:hover {
         <div class="toolbar-row">
           <button id="switch-layer">Layer: GRAPHICS</button>
           <button onclick="enableDeleteMode()">Delete Mode</button>
+          <button onclick="clearPage()">Clear Page</button>
         </div>
       </div>
     
@@ -294,6 +295,89 @@ button:hover {
 
   updateLayerMode();
 
+
+  loadComposerState();  // <<< Restores previous state if available
+
+  // === your existing file upload handler, rotate, zoom, drag, etc. remain unchanged ===
+
+  function saveComposerState() {
+    const exportSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    exportSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    exportSVG.setAttribute("viewBox", `0 0 ${A4_WIDTH} ${A4_HEIGHT}`);
+    exportSVG.setAttribute("width", A4_WIDTH);
+    exportSVG.setAttribute("height", A4_HEIGHT);
+    exportSVG.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+    const graphicsClone = graphicsLayer.cloneNode(true);
+    const userClone = userLayer.cloneNode(true);
+
+    exportSVG.appendChild(graphicsClone);
+    exportSVG.appendChild(userClone);
+
+    const svgString = new XMLSerializer().serializeToString(exportSVG);
+
+    const state = {
+      svg: svgString,
+      transform: {
+        rotation: currentRotation,
+        scale: scaleFactor,
+        translateX: translate.x,
+        translateY: translate.y
+      }
+    };
+
+    localStorage.setItem("composerSVG", JSON.stringify(state));
+  }
+
+  function loadComposerState() {
+    const raw = localStorage.getItem("composerSVG");
+    if (!raw) return;
+
+    let state;
+    try {
+      state = JSON.parse(raw);
+    } catch (e) {
+      console.warn("Failed to parse saved composer state.");
+      return;
+    }
+
+    const tempContainer = document.createElement("div");
+    tempContainer.innerHTML = state.svg;
+    const incomingSVG = tempContainer.querySelector("svg");
+    if (!incomingSVG) return;
+
+    graphicsLayer.innerHTML = "";
+    userLayer.innerHTML = "";
+
+    const children = incomingSVG.children;
+    if (children.length >= 2) {
+      const g1 = children[0];
+      const g2 = children[1];
+      if (g1.tagName === "g") graphicsLayer.append(...g1.childNodes);
+      if (g2.tagName === "g") userLayer.append(...g2.childNodes);
+    }
+
+    // Restore transform state
+    if (state.transform) {
+      currentRotation = state.transform.rotation || 0;
+      scaleFactor = state.transform.scale || 1;
+      translate.x = state.transform.translateX || 0;
+      translate.y = state.transform.translateY || 0;
+      updateUserLayerTransform();
+    }
+    // Re-enable dragging for info and warning boxes
+    graphicsLayer.querySelectorAll("g.draggable-info, g.draggable-warning").forEach(g => {
+      makeSVGElementDraggable(g);
+    });
+  }
+
+
+
+
+  window.addEventListener("beforeunload", saveComposerState);
+
+
+
   document.getElementById('svg-upload').addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file || !file.name.endsWith('.svg')) return;
@@ -318,6 +402,7 @@ button:hover {
     };
 
     reader.readAsText(file);
+    saveComposerState()
   });
 
   function rotateSVG() {
@@ -345,6 +430,7 @@ button:hover {
       "transform",
       `translate(${translate.x} ${translate.y}) rotate(${currentRotation} ${cx} ${cy}) scale(${scaleFactor})`
     );
+    saveComposerState()
   }
 
 
@@ -452,6 +538,7 @@ function addTitleBox() {
   group.appendChild(skuTextEl);
 
   graphicsLayer.appendChild(group);
+  saveComposerState()
 }
 
 function addPinLegend() {
@@ -564,6 +651,7 @@ function addPinLegend() {
   });
 
   graphicsLayer.appendChild(group);
+  saveComposerState()
 }
 
 
@@ -644,6 +732,7 @@ function addSolderedLogo() {
   graphicsLayer.appendChild(group);
   graphicsLayer.appendChild(textMain);
   graphicsLayer.appendChild(textSub);
+  saveComposerState()
 }
 
 
@@ -745,6 +834,7 @@ function addJumperDetails() {
   });
 
   graphicsLayer.appendChild(group);
+  saveComposerState()
 }
 
 
@@ -871,6 +961,7 @@ function addGeneralInfo(direction = "R") {
   group.appendChild(iconText);
   makeSVGElementDraggable(group);
   graphicsLayer.appendChild(group);
+  saveComposerState()
 }
 
 function exportToPNG() {
@@ -1007,6 +1098,7 @@ function addWarningInfo(direction = "R") {
   group.appendChild(exclamation);
   makeSVGElementDraggable(group);
   graphicsLayer.appendChild(group);
+  saveComposerState()
 }
 
 
@@ -1059,6 +1151,20 @@ graphicsLayer.addEventListener("click", function (e) {
 });
 
 
+function clearPage() {
+  const confirmed = confirm("⚠️ This will remove everything on the page. Are you sure you want to clear all content?");
+  if (!confirmed) return;
+
+  graphicsLayer.innerHTML = "";
+  userLayer.innerHTML = "";
+
+  currentRotation = 0;
+  scaleFactor = 1;
+  translate = { x: 0, y: 0 };
+  updateUserLayerTransform();
+
+  localStorage.removeItem("composerSVG");
+}
 
 
 
