@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pinout Generator App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Source Code Pro', monospace;
+      margin: 0;
+      background-color: #F9F8FB;
+      color: #2E2E2E;
+    }
+
+    #navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: #2E2E2E;
+      color: #D6CFE1;
+      padding: 10px 20px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      z-index: 10;
+    }
+
+    #navbar a {
+      color: #D6CFE1;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    #navbar a.active {
+      background-color: #9E4A4F;
+      padding: 6px 12px;
+      border-radius: 5px;
+    }
+
+    main {
+      padding: 60px 40px 40px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    h1 {
+      color: #9E4A4F;
+    }
+
+    section {
+      margin-bottom: 40px;
+    }
+
+    code {
+      background-color: #ECE6F3;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar">
+    <a href="/" class="active">Home</a>
+    <a href="/kicad">KiCad Layers</a>
+    <a href="/editor-upload">SVG Pin Editor</a>
+    <a href="/composer">SVG to PDF</a>
+  </div>
+
+  <main>
+    <h1>Welcome to Pinout Generator</h1>
+    <section>
+      <h2>🧾 Overview</h2>
+      <p>This toolset lets you export KiCad PCB layers to SVG, annotate SVGs with pin labels, and compose print-ready PDFs with custom layout elements.</p>
+    </section>
+
+    <section>
+      <h2>1. Export Layers from KiCad</h2>
+        <p>
+          Visit <a href="/kicad"><code>KiCad Layers</code></a> and upload your <code>.kicad_pcb</code> file.<br>
+          This will generate clean SVGs for selected layers (e.g. F.Silkscreen, Edge.Cuts, etc.).<br><br>
+        
+          <strong>Note:</strong> The layer and color settings are preset and should generally not be changed, as later steps in the pinout diagram workflow rely on these defaults. If you must adjust colors, make sure to preserve the <code>User.Drawings</code> layer exactly as-is—this layer is essential for pin highlighting in the SVG Pin Editor.<br><br>
+        
+          The layers are rendered in a top-to-bottom order, which can be altered is usually left as is. There's no need to reposition the PCB graphic manually at this stage—it can be moved precisely during the following steps.
+        </p>
+
+    </section>
+
+    <section>
+      <h2>2. Add Pin Labels</h2>
+        <p>
+          Go to <a href="/editor-upload"><code>SVG Pin Editor</code></a> and upload an SVG you want to annotate.<br><br>
+        
+          To add pin labels, simply click on a pin in the graphic—it will get highlighted, and you can edit its details in the left sidebar. Don’t worry about the default pin name; you can double-click it to rename it to something like <code>P22</code> or any custom name you prefer.<br><br>
+        
+          To add a label, click the <strong>+</strong> button. To remove it, click the <strong>−</strong> button. You can also choose a color for each label depending on the pin's type. If you make a mistake, creating a new label on the same pin will automatically replace the old one.<br><br>
+        
+          Use the <strong>N / E / S / W</strong> buttons to place the label relative to the pin (North, East, South, West). If your SVG is flipped, you can also use <strong>NM</strong> and <strong>SM</strong> (North Mirrored / South Mirrored) for mirrored placement.<br><br>
+        
+          When you're done, use the download button at the top of the sidebar to save your edited SVG. Orientation doesn’t matter at this stage—the SVG can be rotated or repositioned in the final step of the app.
+        </p>
+
+    </section>
+
+    <section>
+      <h2>3. Compose a Final SVG for Printing</h2>
+      
+        <p>
+          Upload your edited SVG to <a href="/composer"><code>SVG to PDF</code></a> to begin composing the final layout.<br><br>
+        
+          In the <strong>Canvas Controls</strong> tab, upload the SVG with your pin labels. To move it around the A4 canvas, switch its layer to <code>user</code> using the <strong>Editor Tools</strong> section. You can also rotate or resize the SVG freely to fit your desired layout.<br><br>
+        
+          Use the other sections to add a title box, SKU, pin legend, and the Soldered logo. Jumper info blocks can also be added—they display up to 3 lines per column, with additional lines wrapping into new columns automatically.<br><br>
+        
+          You can place multiple <strong>info</strong> or <strong>warning</strong> boxes as needed and drag them anywhere on the page. Alignment options are available to help position each box cleanly within the layout.<br><br>
+        
+          If you make a mistake, just switch to <strong>Delete Mode</strong> in the Editor Tools to remove any element.<br><br>
+        
+          Once you're satisfied, you can export the final result as either an SVG or PNG file, ready for print or sharing.
+        </p>
+
+    </section>
+  </main>
+</body>
+</html>

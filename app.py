@@ -95,10 +95,7 @@ def composer():
 def serve_composer_svg():
     return send_from_directory(COMPOSER_FOLDER, 'composed.svg')
 
-
-
-
 # === HOME REDIRECT ===
 @app.route('/')
 def home():
-    return redirect(url_for('kicad_index'))
+    return render_template('homepage.html')
