@@ -944,6 +944,9 @@ function addGeneralInfo(direction = "R") {
 }
 
 function exportToPNG() {
+  const PNG_WIDTH = 2500;
+  const PNG_HEIGHT = Math.round(2500 * (A4_HEIGHT / A4_WIDTH)); // maintain A4 aspect ratio
+
   const exportSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   exportSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   exportSVG.setAttribute("viewBox", `0 0 ${A4_WIDTH} ${A4_HEIGHT}`);
@@ -953,7 +956,6 @@ function exportToPNG() {
 
   const graphicsClone = graphicsLayer.cloneNode(true);
   const userClone = userLayer.cloneNode(true);
-
   exportSVG.appendChild(graphicsClone);
   exportSVG.appendChild(userClone);
 
@@ -964,14 +966,14 @@ function exportToPNG() {
   const img = new Image();
   img.onload = function () {
     const canvas = document.createElement("canvas");
-    canvas.width = A4_WIDTH;
-    canvas.height = A4_HEIGHT;
+    canvas.width = PNG_WIDTH;
+    canvas.height = PNG_HEIGHT;
+
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, A4_WIDTH, A4_HEIGHT);
-    ctx.drawImage(img, 0, 0);
+    ctx.fillRect(0, 0, PNG_WIDTH, PNG_HEIGHT);
+    ctx.drawImage(img, 0, 0, PNG_WIDTH, PNG_HEIGHT);
 
-    // download
     canvas.toBlob(function (blob) {
       const pngUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -986,6 +988,7 @@ function exportToPNG() {
 
   img.src = url;
 }
+
 
 function addWarningInfo(direction = "R") {
   const infoText = document.getElementById("info-text").value.trim();
